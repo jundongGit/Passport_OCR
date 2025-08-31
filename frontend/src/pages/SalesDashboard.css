@@ -1,0 +1,81 @@
+.sales-dashboard {
+  padding: 0;
+}
+
+.welcome-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 32px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  color: white;
+  text-align: center;
+}
+
+.welcome-section h2 {
+  color: white;
+  margin-bottom: 8px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.welcome-section p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  margin: 0;
+}
+
+.quick-actions-card .ant-card-head {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.quick-actions {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.reminder-card .ant-card-head {
+  background-color: #fff7e6;
+  border-bottom: 1px solid #ffd591;
+}
+
+.reminders p {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.reminders p:last-child {
+  margin-bottom: 0;
+}
+
+/* 统计卡片样式 */
+.ant-statistic-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.ant-statistic-content {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .welcome-section {
+    padding: 24px 16px;
+  }
+  
+  .welcome-section h2 {
+    font-size: 22px;
+  }
+  
+  .welcome-section p {
+    font-size: 14px;
+  }
+  
+  .quick-actions Button {
+    width: 100%;
+    margin-right: 0 !important;
+  }
+}

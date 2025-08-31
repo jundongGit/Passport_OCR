@@ -1,0 +1,295 @@
+.upload-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  padding-top: 40px;
+}
+
+.upload-card {
+  max-width: 1200px;
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.upload-card h1 {
+  text-align: center;
+  color: #1890ff;
+  margin-bottom: 30px;
+  font-size: 28px;
+}
+
+.info-section {
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.info-section p {
+  margin: 8px 0;
+  font-size: 16px;
+}
+
+.upload-steps {
+  margin-bottom: 40px;
+}
+
+.passport-type-section {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.passport-type-section h3 {
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.passport-type-radio {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.passport-type-radio .ant-radio-button-wrapper {
+  height: 40px;
+  line-height: 38px;
+  padding: 0 20px;
+  font-size: 16px;
+}
+
+.upload-dragger {
+  background: #fafafa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.upload-dragger:hover {
+  border-color: #1890ff;
+}
+
+.ant-upload-drag-icon {
+  color: #1890ff;
+}
+
+.upload-tips {
+  margin-top: 20px;
+}
+
+.upload-tips ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.upload-tips ul li {
+  margin: 4px 0;
+}
+
+.loading-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.recognized-info {
+  text-align: left;
+  background: #f0f2f5;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.recognized-info h3 {
+  color: #52c41a;
+  margin-bottom: 16px;
+}
+
+.recognized-info p {
+  margin: 8px 0;
+  font-size: 16px;
+}
+
+/* 新增样式 */
+.confirmation-section {
+  margin-top: 30px;
+}
+
+.passport-image-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.passport-image-section h3 {
+  margin-bottom: 16px;
+  color: #333;
+  text-align: center;
+}
+
+.passport-info-section {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+}
+
+.passport-info-section h3 {
+  margin-bottom: 20px;
+  color: #1890ff;
+  font-size: 18px;
+}
+
+.passport-form .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.passport-form .ant-input,
+.passport-form .ant-select {
+  font-size: 14px;
+}
+
+.passport-form .ant-btn {
+  border-radius: 6px;
+}
+
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .upload-card {
+    max-width: 95%;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 992px) {
+  .upload-page {
+    padding: 15px;
+    padding-top: 20px;
+  }
+  
+  .upload-card h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .info-section {
+    padding: 15px;
+  }
+  
+  .info-section p {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .upload-page {
+    padding: 10px;
+    align-items: center;
+  }
+  
+  .upload-card {
+    margin: 0;
+    border-radius: 8px;
+    max-width: 100%;
+  }
+  
+  .upload-card h1 {
+    font-size: 22px;
+  }
+  
+  .info-section {
+    padding: 12px;
+  }
+  
+  .passport-type-radio {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .passport-type-radio .ant-radio-button-wrapper {
+    width: 200px;
+    margin: 0 auto;
+  }
+
+  .confirmation-section .ant-col {
+    margin-bottom: 20px;
+  }
+
+  .passport-image-section {
+    margin-bottom: 30px;
+    padding: 15px;
+  }
+  
+  .passport-info-section {
+    padding: 15px;
+  }
+  
+  .passport-info-section h3 {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .upload-page {
+    padding: 5px;
+  }
+  
+  .upload-card {
+    border-radius: 6px;
+  }
+  
+  .upload-card h1 {
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .info-section {
+    padding: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .info-section p {
+    font-size: 13px;
+    margin: 6px 0;
+  }
+  
+  .upload-steps {
+    margin-bottom: 20px;
+  }
+  
+  .ant-steps-item-title {
+    font-size: 12px !important;
+  }
+  
+  .upload-dragger {
+    padding: 20px;
+  }
+  
+  .ant-upload-text {
+    font-size: 14px;
+  }
+  
+  .ant-upload-hint {
+    font-size: 12px;
+  }
+  
+  .passport-form .ant-form-item-label > label {
+    font-size: 13px;
+  }
+  
+  .passport-form .ant-input,
+  .passport-form .ant-select {
+    font-size: 13px;
+  }
+  
+  .passport-form .ant-btn {
+    font-size: 13px;
+    height: 36px;
+  }
+}

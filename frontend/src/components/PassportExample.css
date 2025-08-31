@@ -1,0 +1,153 @@
+.passport-example-modal .ant-modal-body {
+  padding: 20px;
+}
+
+.example-card {
+  height: 100%;
+}
+
+.example-card.correct .ant-card-head {
+  background-color: #f6ffed;
+  border-bottom: 1px solid #b7eb8f;
+}
+
+.example-card.incorrect .ant-card-head {
+  background-color: #fff2f0;
+  border-bottom: 1px solid #ffb3b3;
+}
+
+.example-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+.correct-example {
+  background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
+}
+
+.incorrect-example {
+  background: linear-gradient(135deg, #fff2f0 0%, #ffccc7 100%);
+}
+
+.passport-mockup {
+  width: 160px;
+  height: 120px;
+  background: linear-gradient(135deg, #1e3d8b 0%, #3b82f6 100%);
+  border-radius: 8px;
+  padding: 8px;
+  color: white;
+  font-size: 8px;
+  line-height: 1.2;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform-origin: center;
+}
+
+.passport-mockup.tilted {
+  transform: rotate(-15deg) perspective(200px) rotateX(20deg);
+}
+
+.passport-header {
+  text-align: center;
+  font-weight: bold;
+  font-size: 10px;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+.passport-photo {
+  width: 24px;
+  height: 30px;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  float: left;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
+.passport-info {
+  overflow: hidden;
+}
+
+.info-line {
+  margin-bottom: 1px;
+  font-size: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.example-tips {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.example-tips li {
+  padding: 4px 0;
+  font-size: 12px;
+  position: relative;
+  padding-left: 16px;
+}
+
+.correct-tips li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #52c41a;
+  font-weight: bold;
+}
+
+.incorrect-tips li::before {
+  content: '✗';
+  position: absolute;
+  left: 0;
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+.example-tips li {
+  color: #666;
+}
+
+.correct-tips li {
+  color: #52c41a;
+}
+
+.incorrect-tips li {
+  color: #ff4d4f;
+}
+
+@media (max-width: 768px) {
+  .passport-example-modal .ant-modal {
+    width: 95% !important;
+    margin: 10px auto;
+  }
+  
+  .example-image {
+    height: 150px;
+  }
+  
+  .passport-mockup {
+    width: 120px;
+    height: 90px;
+    font-size: 6px;
+  }
+  
+  .passport-header {
+    font-size: 8px;
+  }
+  
+  .passport-photo {
+    width: 18px;
+    height: 22px;
+  }
+  
+  .info-line {
+    font-size: 5px;
+  }
+}

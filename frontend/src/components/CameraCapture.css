@@ -1,0 +1,210 @@
+.camera-modal .ant-modal-body {
+  padding: 0;
+}
+
+.camera-container {
+  position: relative;
+  background: #000;
+  min-height: 500px;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-height: 500px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.camera-video {
+  width: 100%;
+  height: auto;
+  max-height: 500px;
+  object-fit: contain;
+}
+
+/* 识别框 */
+.detection-frame {
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  right: 10%;
+  bottom: 10%;
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.detection-frame.detected {
+  border-color: #52c41a;
+  border-style: solid;
+  box-shadow: 0 0 20px rgba(82, 196, 26, 0.3);
+}
+
+/* 四角标记 */
+.corner {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(255, 100, 100, 0.8);
+  transition: all 0.3s ease;
+}
+
+.corner.active {
+  border-color: #52c41a;
+  box-shadow: 0 0 10px rgba(82, 196, 26, 0.5);
+}
+
+.detection-frame.detected .corner {
+  border-color: #52c41a;
+  box-shadow: 0 0 15px rgba(82, 196, 26, 0.8);
+}
+
+.corner.top-left {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner.top-right {
+  top: -2px;
+  right: -2px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.corner.bottom-left {
+  bottom: -2px;
+  left: -2px;
+  border-right: none;
+  border-top: none;
+}
+
+.corner.bottom-right {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+}
+
+/* 边缘指示器 */
+.edge-indicator {
+  position: absolute;
+  background: rgba(255, 0, 0, 0.3);
+  transition: background 0.3s ease;
+}
+
+.edge-indicator.active {
+  background: rgba(82, 196, 26, 0.3);
+}
+
+.edge-indicator.top,
+.edge-indicator.bottom {
+  left: 30px;
+  right: 30px;
+  height: 3px;
+}
+
+.edge-indicator.top {
+  top: -2px;
+}
+
+.edge-indicator.bottom {
+  bottom: -2px;
+}
+
+.edge-indicator.left,
+.edge-indicator.right {
+  top: 30px;
+  bottom: 30px;
+  width: 3px;
+}
+
+.edge-indicator.left {
+  left: -2px;
+}
+
+.edge-indicator.right {
+  right: -2px;
+}
+
+/* 提示文字 */
+.camera-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: white;
+  font-size: 16px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  margin: 0 20px;
+}
+
+.camera-hint .success {
+  color: #52c41a;
+  font-weight: bold;
+}
+
+.corner-status {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.corner-status .missing {
+  color: #ff4d4f;
+  margin: 0 8px;
+  display: inline-block;
+}
+
+/* 控制按钮 */
+.camera-controls,
+.preview-controls {
+  padding: 16px;
+  background: white;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* 预览图片 */
+.preview-wrapper {
+  width: 100%;
+  max-height: 500px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .camera-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .detection-frame {
+    top: 15%;
+    left: 5%;
+    right: 5%;
+    bottom: 15%;
+  }
+  
+  .camera-hint {
+    font-size: 14px;
+  }
+}

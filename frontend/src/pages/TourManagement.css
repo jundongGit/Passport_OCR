@@ -1,0 +1,25 @@
+.tour-management {
+  padding: 20px;
+  background: #f0f2f5;
+  min-height: 100vh;
+}
+
+.management-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+}
+
+/* 游客管理表格样式 */
+.ant-table-tbody .ant-table-row:hover .ant-btn-dangerous {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+  color: #fff;
+}
+
+.ant-popover-inner-content {
+  padding: 16px;
+}
+
+.ant-popover-message {
+  margin-bottom: 8px;
+}

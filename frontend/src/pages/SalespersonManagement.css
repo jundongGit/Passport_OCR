@@ -1,0 +1,40 @@
+.salesperson-management {
+  padding: 24px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.management-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.management-card .ant-card-head {
+  background: linear-gradient(90deg, #1890ff, #36cfc9);
+}
+
+.management-card .ant-card-head-title {
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background-color: #f5f5f5;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .salesperson-management {
+    padding: 16px;
+  }
+  
+  .management-card .ant-card-head-title {
+    font-size: 16px;
+  }
+}

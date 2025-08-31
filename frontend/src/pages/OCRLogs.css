@@ -1,0 +1,83 @@
+.ocr-logs {
+  padding: 24px;
+  background-color: #f0f2f5;
+  min-height: 100vh;
+}
+
+.logs-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.statistics-section .ant-card {
+  text-align: center;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.statistics-section .ant-statistic-title {
+  font-size: 14px;
+  color: #666;
+}
+
+.statistics-section .ant-statistic-content {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.filter-section {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+}
+
+.log-detail {
+  padding: 16px 0;
+}
+
+.log-detail > .ant-row > .ant-col > div {
+  padding: 4px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.log-detail > .ant-row > .ant-col > div:last-child {
+  border-bottom: none;
+}
+
+/* 表格优化 */
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  border-bottom: 2px solid #f0f0f0;
+  font-weight: 600;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #f5f7fa;
+}
+
+/* 状态标签优化 */
+.ant-tag {
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* 按钮组优化 */
+.ant-space-item .ant-btn {
+  border-radius: 4px;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .ocr-logs {
+    padding: 12px;
+  }
+  
+  .statistics-section .ant-col {
+    margin-bottom: 12px;
+  }
+  
+  .filter-section .ant-col {
+    margin-bottom: 8px;
+  }
+}
