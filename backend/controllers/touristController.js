@@ -12,7 +12,7 @@ exports.getAllTourists = async (req, res) => {
   try {
     const tourists = await Tourist.find({})
       .populate('tourId', 'productName departureDate')
-      .sort({ createdAt: -1 });
+      .sort({ ekok: 1, touristName: 1 }); // 按EKOK分组，EKOK相同则按姓名排序
     
     // 添加tourName字段以便前端使用
     const touristsWithTourName = tourists.map(tourist => ({
@@ -193,9 +193,17 @@ exports.getTouristById = async (req, res) => {
 
 exports.updateTourist = async (req, res) => {
   try {
+    const updateData = { ...req.body, updatedAt: Date.now() };
+    
+    // 如果不是管理员，移除房型和备注的修改权限
+    if (req.salesperson && req.salesperson.role !== 'admin') {
+      delete updateData.roomType;
+      delete updateData.remarks;
+    }
+    
     const tourist = await Tourist.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedAt: Date.now() },
+      updateData,
       { new: true, runValidators: true }
     );
     
@@ -297,8 +305,8 @@ exports.updatePassportPhoto = async (req, res) => {
       uploadLink: tourist.uploadLink,
       touristId: tourist._id,
       operationType: 'update',
-      operatorName: req.user?.name || '管理员',
-      operatorId: req.user?._id || null,
+      operatorName: req.salesperson?.name || '管理员',
+      operatorId: req.salesperson?._id || null,
       imageQuality: qualityCheck,
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.get('User-Agent')
@@ -331,6 +339,38 @@ exports.updatePassportPhoto = async (req, res) => {
     }
 
     const passportData = ocrResult.data;
+    
+    // 如果游客已有护照姓名信息，验证新护照是否为同一人
+    if (tourist.passportName && passportData.fullName) {
+      const existingName = tourist.passportName.replace(/\s+/g, ' ').trim().toUpperCase();
+      const newName = passportData.fullName.replace(/-/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+      
+      if (existingName !== newName) {
+        // 删除已上传的文件
+        await fs.unlink(req.file.path);
+        
+        return res.status(400).json({
+          success: false,
+          error: `护照姓名不匹配。原护照姓名: ${tourist.passportName}，新护照姓名: ${passportData.fullName}。不能通过编辑护照照片来更换游客。`
+        });
+      }
+    }
+    
+    // 如果游客已有护照号码，验证新护照号码是否一致
+    if (tourist.passportNumber && passportData.passportNumber) {
+      const existingNumber = tourist.passportNumber.toUpperCase().replace(/\s+/g, '');
+      const newNumber = passportData.passportNumber.toUpperCase().replace(/\s+/g, '');
+      
+      if (existingNumber !== newNumber) {
+        // 删除已上传的文件
+        await fs.unlink(req.file.path);
+        
+        return res.status(400).json({
+          success: false,
+          error: `不可更改护照持有人。原护照号码: ${tourist.passportNumber}，新识别的护照号码: ${passportData.passportNumber}。`
+        });
+      }
+    }
     
     // 处理DD/MM/YYYY格式的日期
     const parseDDMMYYYY = (dateStr) => {

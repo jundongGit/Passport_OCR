@@ -34,6 +34,7 @@ const authRoutes = require('./routes/auth');
 const salespersonRoutes = require('./routes/salesperson');
 const initRoutes = require('./routes/init');
 const ocrLogRoutes = require('./routes/ocrLogRoutes');
+const emailVerificationRoutes = require('./routes/emailVerificationRoutes');
 
 app.use('/api/tours', tourRoutes);
 app.use('/api/tourists', touristRoutes);
@@ -43,6 +44,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/salespersons', salespersonRoutes);
 app.use('/api/init', initRoutes);
 app.use('/api/ocr-logs', ocrLogRoutes);
+app.use('/api/email-verification', emailVerificationRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });

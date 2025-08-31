@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const touristController = require('../controllers/touristController');
+const { auth, optionalAuth } = require('../middleware/auth');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -32,13 +33,13 @@ const upload = multer({
   }
 });
 
-router.get('/', touristController.getAllTourists);
-router.post('/', touristController.createTourist);
-router.get('/tour/:tourId', touristController.getTouristsByTour);
+router.get('/', auth, touristController.getAllTourists);
+router.post('/', auth, touristController.createTourist);
+router.get('/tour/:tourId', auth, touristController.getTouristsByTour);
 router.get('/link/:uploadLink', touristController.getTouristByUploadLink);
-router.get('/:id', touristController.getTouristById);
-router.put('/:id', touristController.updateTourist);
-router.post('/:id/update-passport', upload.single('passport'), touristController.updatePassportPhoto);
-router.delete('/:id', touristController.deleteTourist);
+router.get('/:id', auth, touristController.getTouristById);
+router.put('/:id', auth, touristController.updateTourist);
+router.post('/:id/update-passport', optionalAuth, upload.single('passport'), touristController.updatePassportPhoto);
+router.delete('/:id', auth, touristController.deleteTourist);
 
 module.exports = router;

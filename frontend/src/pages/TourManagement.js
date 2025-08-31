@@ -24,6 +24,7 @@ function TourManagement() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [newPassportPhoto, setNewPassportPhoto] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [progressText, setProgressText] = useState('');
   const [form] = Form.useForm();
   const [touristForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -319,7 +320,8 @@ function TourManagement() {
       gender: tourist.gender || 'M',
       passportBirthDate: tourist.passportBirthDate ? moment(tourist.passportBirthDate).format('YYYY-MM-DD') : '',
       passportExpiryDate: tourist.passportExpiryDate ? moment(tourist.passportExpiryDate).format('YYYY-MM-DD') : '',
-      passportIssueDate: tourist.passportIssueDate ? moment(tourist.passportIssueDate).format('YYYY-MM-DD') : ''
+      passportIssueDate: tourist.passportIssueDate ? moment(tourist.passportIssueDate).format('YYYY-MM-DD') : '',
+      remarks: tourist.remarks || ''
     });
   };
 
@@ -351,6 +353,21 @@ function TourManagement() {
     }
   };
 
+  // 更新房型
+  const handleUpdateRoomType = async (touristId, roomType) => {
+    try {
+      await axios.put(`${API_BASE}/tourists/${touristId}`, {
+        roomType
+      }, {
+        headers: authService.getAuthHeaders()
+      });
+      message.success('房型更新成功');
+      fetchTourists(selectedTour._id);
+    } catch (error) {
+      message.error('房型更新失败');
+    }
+  };
+
   // 更新游客信息
   const handleUpdateTourist = async (values) => {
     const nameValidation = validatePassportName(values.touristName);
@@ -379,6 +396,7 @@ function TourManagement() {
         passportBirthDate: values.passportBirthDate,
         passportExpiryDate: values.passportExpiryDate,
         passportIssueDate: values.passportIssueDate,
+        remarks: values.remarks,
         tourId: selectedTour._id
       }, {
         headers: authService.getAuthHeaders()
@@ -398,16 +416,25 @@ function TourManagement() {
     setUploadingPhoto(true);
     setUploadProgress(0);
     
-    // 模拟进度条
+    // 更真实的进度条模拟
+    const progressSteps = [
+      { percent: 20, text: '正在上传图片...' },
+      { percent: 40, text: '图片质量检查中...' },
+      { percent: 60, text: 'AI智能识别中...' },
+      { percent: 80, text: '解析护照信息...' },
+      { percent: 95, text: '完成识别处理...' }
+    ];
+    
+    let stepIndex = 0;
     const progressInterval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return prev;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 200);
+      if (stepIndex < progressSteps.length) {
+        setUploadProgress(progressSteps[stepIndex].percent);
+        setProgressText(progressSteps[stepIndex].text);
+        stepIndex++;
+      } else {
+        clearInterval(progressInterval);
+      }
+    }, 800);
     
     const formData = new FormData();
     formData.append('passport', file);
@@ -429,6 +456,7 @@ function TourManagement() {
         // 完成进度条
         clearInterval(progressInterval);
         setUploadProgress(100);
+        setProgressText('识别完成！');
         
         setNewPassportPhoto(response.data.passportPhoto);
         message.success('护照照片上传成功');
@@ -436,10 +464,16 @@ function TourManagement() {
         // 如果有识别结果，更新表单
         if (response.data.recognizedData) {
           const data = response.data.recognizedData;
+          // 确保CHI被转换为CHN
+          let nationality = data.nationality;
+          if (nationality === 'CHI') {
+            nationality = 'CHN';
+          }
+          
           editForm.setFieldsValue({
             passportName: data.fullName || data.recognizedName,
             passportNumber: data.passportNumber,
-            nationality: data.nationality,
+            nationality: nationality,
             gender: data.gender,
             passportBirthDate: data.birthDate ? moment(data.birthDate).format('YYYY-MM-DD') : '',
             passportExpiryDate: data.expiryDate ? moment(data.expiryDate).format('YYYY-MM-DD') : '',
@@ -451,6 +485,7 @@ function TourManagement() {
     } catch (error) {
       clearInterval(progressInterval);
       setUploadProgress(0);
+      setProgressText('');
       message.error('护照照片上传失败：' + (error.response?.data?.error || error.message));
     } finally {
       setUploadingPhoto(false);
@@ -559,7 +594,20 @@ function TourManagement() {
       dataIndex: 'ekok',
       key: 'ekok',
       width: 100,
-      render: (text) => text || '-',
+      render: (text, record, index) => {
+        // 检查是否与前一行的EKOK相同
+        const prevRecord = index > 0 ? tourists[index - 1] : null;
+        const isSameAsPrev = prevRecord && prevRecord.ekok === text;
+        
+        return (
+          <span style={{ 
+            fontWeight: !isSameAsPrev && text ? 'bold' : 'normal',
+            color: text ? '#1890ff' : '#999'
+          }}>
+            {text || '-'}
+          </span>
+        );
+      },
     },
     {
       title: '游客类型',
@@ -637,12 +685,20 @@ function TourManagement() {
       title: '房型',
       dataIndex: 'roomType',
       key: 'roomType',
-      width: 80,
-      render: (type) => {
-        if (type === 'SINGLE') return <Tag color="orange">单人房</Tag>;
-        if (type === 'TWIN') return <Tag color="purple">双床房</Tag>;
-        return '-';
-      },
+      width: 120,
+      render: (roomType, record) => (
+        <Select
+          value={roomType || ''}
+          style={{ width: '100%' }}
+          placeholder="选择房型"
+          onChange={(value) => handleUpdateRoomType(record._id, value)}
+          size="small"
+        >
+          <Option value="">未分配</Option>
+          <Option value="单人间">单人间</Option>
+          <Option value="双人间">双人间</Option>
+        </Select>
+      ),
     },
     {
       title: '备注',
@@ -885,6 +941,13 @@ function TourManagement() {
           rowKey="_id"
           scroll={{ x: 2000 }}
           pagination={false}
+          rowClassName={(record, index) => {
+            // 为相同EKOK的行添加不同的背景色
+            if (index > 0 && tourists[index - 1].ekok === record.ekok && record.ekok) {
+              return 'same-ekok-row';
+            }
+            return '';
+          }}
         />
       </Modal>
 
@@ -896,6 +959,8 @@ function TourManagement() {
           onCancel={() => {
             setEditingTourist(null);
             setUploadProgress(0);
+            setProgressText('');
+            setNewPassportPhoto(null);
             editForm.resetFields();
           }}
           footer={null}
@@ -1038,6 +1103,18 @@ function TourManagement() {
               </Col>
             </Row>
 
+            <Form.Item
+              name="remarks"
+              label="备注"
+            >
+              <Input.TextArea 
+                placeholder="请输入备注信息" 
+                rows={3}
+                maxLength={500}
+                showCount
+              />
+            </Form.Item>
+
             <Form.Item label="护照照片">
               <div>
                 {editingTourist?.passportPhoto && (
@@ -1091,7 +1168,7 @@ function TourManagement() {
                       size="small"
                     />
                     <div style={{ fontSize: 11, color: '#1890ff', marginTop: 4, textAlign: 'center' }}>
-                      AI智能识别中，请稍候...
+                      {progressText || 'AI智能识别中，请稍候...'}
                     </div>
                   </div>
                 )}

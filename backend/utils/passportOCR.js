@@ -195,12 +195,18 @@ class PassportOCR {
   }
 
   normalizePassportData(data, expectedType) {
+    // 处理国籍代码，CHI -> CHN
+    let nationality = data.nationality;
+    if (nationality === 'CHI') {
+      nationality = 'CHN';
+    }
+    
     const normalized = {
       fullName: data.fullName ? data.fullName.replace(/-/g, ' ') : null,
       chineseName: data.chineseName || null,
       passportNumber: data.passportNumber ? data.passportNumber.toUpperCase().replace(/\s/g, '') : null,
       gender: data.gender || null,
-      nationality: getCountryCode(data.nationality) || data.nationality || null,
+      nationality: getCountryCode(nationality) || nationality || null,
       birthDate: this.parseDate(data.birthDate),
       issueDate: this.parseDate(data.issueDate),
       expiryDate: this.parseDate(data.expiryDate),

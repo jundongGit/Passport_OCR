@@ -1,4 +1,5 @@
 const Tourist = require('../models/Tourist');
+const EmailVerification = require('../models/EmailVerification');
 const imageQuality = require('../utils/imageQuality');
 const passportOCR = require('../utils/passportOCR');
 const { getCountryCode } = require('../utils/countryCode');
@@ -157,6 +158,16 @@ exports.uploadPassport = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: '邮箱格式不正确'
+      });
+    }
+    
+    // 验证邮箱验证码
+    const isEmailVerified = await EmailVerification.isEmailVerified(confirmedData.contactEmail, uploadLink);
+    if (!isEmailVerified) {
+      await fs.unlink(req.file.path);
+      return res.status(400).json({
+        success: false,
+        error: '邮箱未验证，请先验证邮箱'
       });
     }
     

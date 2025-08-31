@@ -315,6 +315,13 @@ function SalesTourists() {
       },
     },
     {
+      title: '房型',
+      dataIndex: 'roomType',
+      key: 'roomType',
+      width: 120,
+      render: (roomType) => roomType || '-',
+    },
+    {
       title: '上传状态',
       dataIndex: 'uploadStatus',
       key: 'uploadStatus',

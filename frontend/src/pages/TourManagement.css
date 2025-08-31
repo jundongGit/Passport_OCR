@@ -23,3 +23,12 @@
 .ant-popover-message {
   margin-bottom: 8px;
 }
+
+/* 相同EKOK的行样式 */
+.same-ekok-row {
+  background-color: #f9f9f9;
+}
+
+.same-ekok-row:hover td {
+  background-color: #e6f7ff !important;
+}

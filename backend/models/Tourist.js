@@ -55,7 +55,7 @@ const touristSchema = new mongoose.Schema({
   },
   roomType: {
     type: String,
-    enum: ['SINGLE', 'TWIN', null],
+    enum: ['单人间', '双人间', null],
     default: null
   },
   passportPhoto: {

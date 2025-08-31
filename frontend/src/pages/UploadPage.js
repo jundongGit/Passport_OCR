@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Upload, Button, Card, Alert, Spin, Result, Steps, message, Form, Input, Select, Image, Row, Col, Space, Progress } from 'antd';
 import { InboxOutlined, CheckCircleOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import moment from 'moment';
 import { getAllCountries } from '../utils/countryCode';
 import { validatePassportName, getNameFormatHint } from '../utils/nameValidator';
 import Footer from '../components/Footer';
@@ -13,6 +14,20 @@ const { Step } = Steps;
 const { Option } = Select;
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3060/api';
+
+// 格式化日期为YYYY-MM-DD
+const formatDate = (date) => {
+  if (!date) return '';
+  // 处理DD/MM/YYYY格式
+  if (typeof date === 'string' && date.includes('/')) {
+    const parts = date.split('/');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+  // 处理ISO日期格式
+  return moment(date).format('YYYY-MM-DD');
+};
 
 function UploadPage() {
   const { uploadLink } = useParams();
@@ -28,6 +43,11 @@ function UploadPage() {
   const [confirming, setConfirming] = useState(false);
   const [finalSubmitted, setFinalSubmitted] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [progressText, setProgressText] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,6 +65,15 @@ function UploadPage() {
       
       // 如果已经上传过，显示已完成状态
       if (response.data.data.uploadStatus === 'verified') {
+        // 从touristInfo中提取数据
+        const submittedData = {
+          fullName: response.data.data.passportName || response.data.data.touristName,
+          passportNumber: response.data.data.passportNumber,
+          gender: response.data.data.gender || 'M',
+          expiryDate: response.data.data.passportExpiryDate,
+          nationality: response.data.data.nationality
+        };
+        setRecognizedData(submittedData);
         setFinalSubmitted(true);
         setCurrentStep(2);
       }
@@ -60,7 +89,12 @@ function UploadPage() {
       if (response.data.data.status === 'verified') {
         setFinalSubmitted(true);
         setCurrentStep(2);
-        setRecognizedData(response.data.data.recognizedData);
+        // 格式化数据，确保fullName字段存在
+        const recognizedData = response.data.data.recognizedData || {};
+        if (recognizedData.name && !recognizedData.fullName) {
+          recognizedData.fullName = recognizedData.name;
+        }
+        setRecognizedData(recognizedData);
       }
     } catch (error) {
       console.error('Failed to check upload status:', error);
@@ -81,19 +115,27 @@ function UploadPage() {
     formData.append('preview', 'true'); // 告诉后端这只是预览
 
     setUploading(true);
-    setCurrentStep(1);
     setUploadProgress(0);
 
-    // 模拟进度条
+    // 更真实的进度条模拟
+    const progressSteps = [
+      { percent: 20, text: '正在上传图片...' },
+      { percent: 40, text: '图片质量检查中...' },
+      { percent: 60, text: 'AI智能识别中...' },
+      { percent: 80, text: '解析护照信息...' },
+      { percent: 95, text: '完成识别处理...' }
+    ];
+    
+    let stepIndex = 0;
     const progressInterval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return prev;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 200);
+      if (stepIndex < progressSteps.length) {
+        setUploadProgress(progressSteps[stepIndex].percent);
+        setProgressText(progressSteps[stepIndex].text);
+        stepIndex++;
+      } else {
+        clearInterval(progressInterval);
+      }
+    }, 800);
 
     try {
       const response = await axios.post(
@@ -110,10 +152,17 @@ function UploadPage() {
         // 完成进度条
         clearInterval(progressInterval);
         setUploadProgress(100);
+        setProgressText('识别完成！');
         
         setRecognizedData(response.data.data);
         
         // 设置表单默认值
+        let nationality = response.data.data.nationality || 'CHN';
+        // 确保CHI被转换为CHN
+        if (nationality === 'CHI') {
+          nationality = 'CHN';
+        }
+        
         form.setFieldsValue({
           fullName: response.data.data.recognizedName || '',
           passportNumber: response.data.data.passportNumber || '',
@@ -122,7 +171,7 @@ function UploadPage() {
           expiryDate: response.data.data.expiryDate || '',
           birthDate: response.data.data.birthDate || '',
           birthPlace: response.data.data.birthPlace || '',
-          nationality: response.data.data.nationality || 'CHN'
+          nationality: nationality
         });
         
         setCurrentStep(1);
@@ -138,6 +187,7 @@ function UploadPage() {
       setTempImageUrl(null);
       setTempImageFile(null);
       setUploadProgress(0);
+      setProgressText('');
     } finally {
       setUploading(false);
     }
@@ -153,6 +203,12 @@ function UploadPage() {
       const nameValidation = validatePassportName(values.fullName);
       if (!nameValidation.valid) {
         message.error(nameValidation.error);
+        return;
+      }
+      
+      // 验证邮箱是否已验证
+      if (!emailVerified) {
+        message.error('请先验证邮箱');
         return;
       }
       
@@ -184,6 +240,16 @@ function UploadPage() {
       );
 
       if (response.data.success) {
+        // 保存提交的数据用于显示
+        const submittedData = {
+          fullName: nameValidation.formatted,
+          passportNumber: values.passportNumber,
+          gender: values.gender,
+          expiryDate: values.expiryDate,
+          birthDate: values.birthDate,
+          nationality: values.nationality
+        };
+        setRecognizedData(submittedData);
         setFinalSubmitted(true);
         setCurrentStep(2);
         message.success('护照信息已确认并保存！');
@@ -208,7 +274,74 @@ function UploadPage() {
     setRecognizedData(null);
     setIsEditing(false);
     setUploadProgress(0);
+    setProgressText('');
+    setEmailVerified(false);
+    setCountdown(0);
     form.resetFields();
+  };
+
+  // 发送验证码
+  const handleSendVerificationCode = async () => {
+    try {
+      const email = form.getFieldValue('contactEmail');
+      if (!email) {
+        message.error('请先输入邮箱地址');
+        return;
+      }
+
+      setSendingCode(true);
+      const response = await axios.post(`${API_BASE}/email-verification/send-code`, {
+        email,
+        uploadLink
+      });
+
+      if (response.data.success) {
+        message.success('验证码已发送，请查收邮件');
+        setCountdown(60);
+        const timer = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } catch (error) {
+      message.error(error.response?.data?.error || '发送验证码失败');
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
+  // 验证验证码
+  const handleVerifyCode = async () => {
+    try {
+      const email = form.getFieldValue('contactEmail');
+      const verificationCode = form.getFieldValue('verificationCode');
+      
+      if (!email || !verificationCode) {
+        message.error('请输入邮箱和验证码');
+        return;
+      }
+
+      setVerifyingCode(true);
+      const response = await axios.post(`${API_BASE}/email-verification/verify-code`, {
+        email,
+        uploadLink,
+        code: verificationCode
+      });
+
+      if (response.data.success) {
+        setEmailVerified(true);
+        message.success('邮箱验证成功');
+      }
+    } catch (error) {
+      message.error(error.response?.data?.error || '验证码验证失败');
+    } finally {
+      setVerifyingCode(false);
+    }
   };
 
   const uploadProps = {
@@ -250,10 +383,10 @@ function UploadPage() {
                 <h3>提交的信息：</h3>
                 {recognizedData && (
                   <>
-                    <p><strong>姓名：</strong>{recognizedData.name || recognizedData.fullName}</p>
-                    <p><strong>护照号：</strong>{recognizedData.passportNumber}</p>
+                    <p><strong>姓名：</strong>{recognizedData.fullName || recognizedData.name || ''}</p>
+                    <p><strong>护照号：</strong>{recognizedData.passportNumber || ''}</p>
                     <p><strong>性别：</strong>{recognizedData.gender === 'M' ? '男' : '女'}</p>
-                    <p><strong>有效期至：</strong>{recognizedData.expiryDate}</p>
+                    <p><strong>护照有效期至：</strong>{formatDate(recognizedData.expiryDate)}</p>
                   </>
                 )}
               </div>
@@ -289,7 +422,7 @@ function UploadPage() {
               {uploading ? (
                 <div>
                   <Spin size="large" />
-                  <p className="ant-upload-text">正在处理护照图片...</p>
+                  <p className="ant-upload-text">{progressText || '正在处理护照图片...'}</p>
                   <div style={{ margin: '20px 40px' }}>
                     <Progress 
                       percent={Math.round(uploadProgress)} 
@@ -298,9 +431,10 @@ function UploadPage() {
                         '0%': '#108ee9',
                         '100%': '#52c41a',
                       }}
+                      format={percent => `${percent}%`}
                     />
                   </div>
-                  <p className="ant-upload-hint">AI智能识别中，请稍候...</p>
+                  <p className="ant-upload-hint">{progressText || 'AI智能识别中，请稍候...'}</p>
                 </div>
               ) : (
                 <>
@@ -512,7 +646,59 @@ function UploadPage() {
                             { type: 'email', message: '邮箱格式不正确' }
                           ]}
                         >
-                          <Input placeholder="请输入联系邮箱" />
+                          <Input 
+                            placeholder="请输入联系邮箱" 
+                            suffix={
+                              emailVerified ? 
+                                <CheckCircleOutlined style={{ color: '#52c41a' }} /> : 
+                                null
+                            }
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    {/* 邮箱验证码 */}
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="verificationCode"
+                          label="邮箱验证码"
+                          rules={[
+                            { required: !emailVerified, message: '请输入验证码' }
+                          ]}
+                        >
+                          <Input 
+                            placeholder="请输入6位验证码" 
+                            maxLength={6}
+                            disabled={emailVerified}
+                            suffix={
+                              emailVerified ? 
+                                <CheckCircleOutlined style={{ color: '#52c41a' }} /> : 
+                                null
+                            }
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item label=" ">
+                          <Space>
+                            <Button
+                              onClick={handleSendVerificationCode}
+                              loading={sendingCode}
+                              disabled={countdown > 0 || emailVerified}
+                            >
+                              {countdown > 0 ? `${countdown}s后重发` : '发送验证码'}
+                            </Button>
+                            <Button
+                              type="primary"
+                              onClick={handleVerifyCode}
+                              loading={verifyingCode}
+                              disabled={emailVerified}
+                            >
+                              验证
+                            </Button>
+                          </Space>
                         </Form.Item>
                       </Col>
                     </Row>
@@ -525,8 +711,9 @@ function UploadPage() {
                           icon={<CheckCircleOutlined />}
                           onClick={handleFinalSubmit}
                           loading={confirming}
+                          disabled={!emailVerified}
                         >
-                          确认无误，提交信息
+                          {emailVerified ? '确认无误，提交信息' : '请先验证邮箱'}
                         </Button>
                         <Button 
                           size="large"
