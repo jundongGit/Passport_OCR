@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log*
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+coverage
+.nyc_output
+build
+*.log
+.DS_Store
+src/__tests__
+public/mockServiceWorker.js

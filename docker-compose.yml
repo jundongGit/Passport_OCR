@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: passport-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    environment:
+      - MONGO_INITDB_DATABASE=passport_ocr
+    networks:
+      - passport-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: passport-backend
+    restart: unless-stopped
+    ports:
+      - "3060:3060"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - PORT=3060
+      - MONGODB_URI=mongodb://mongodb:27017/passport_ocr
+      - JWT_SECRET=your_jwt_secret_key_here
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - UPLOAD_DIR=uploads
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - mongodb
+    networks:
+      - passport-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: passport-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - passport-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  passport-network:
+    driver: bridge
