@@ -1,4 +1,4 @@
-const Salesperson = require('../models/Salesperson');
+const { Salesperson } = require('../models');
 const bcrypt = require('bcryptjs');
 
 // 销售人员登录
@@ -14,7 +14,9 @@ exports.login = async (req, res) => {
     }
 
     // 查找销售人员
-    const salesperson = await Salesperson.findOne({ email, isActive: true });
+    const salesperson = await Salesperson.findOne({ 
+      where: { email, isActive: true } 
+    });
     
     if (!salesperson) {
       return res.status(401).json({
@@ -45,7 +47,7 @@ exports.login = async (req, res) => {
       data: {
         token,
         user: {
-          _id: salesperson._id,
+          id: salesperson.id,
           name: salesperson.name,
           email: salesperson.email,
           role: salesperson.role,
@@ -65,7 +67,7 @@ exports.login = async (req, res) => {
 // 获取当前用户信息
 exports.getCurrentUser = async (req, res) => {
   try {
-    const salesperson = await Salesperson.findById(req.salespersonId);
+    const salesperson = await Salesperson.findByPk(req.salespersonId);
     
     if (!salesperson) {
       return res.status(404).json({
@@ -105,7 +107,7 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    const salesperson = await Salesperson.findById(req.salespersonId);
+    const salesperson = await Salesperson.findByPk(req.salespersonId);
     
     // 验证旧密码
     const isPasswordValid = await salesperson.comparePassword(oldPassword);
@@ -153,7 +155,9 @@ exports.logout = async (req, res) => {
 exports.createAdmin = async (req, res) => {
   try {
     // 检查是否已有管理员
-    const adminExists = await Salesperson.findOne({ role: 'admin' });
+    const adminExists = await Salesperson.findOne({ 
+      where: { role: 'admin' } 
+    });
     
     if (adminExists) {
       return res.status(400).json({
@@ -163,15 +167,13 @@ exports.createAdmin = async (req, res) => {
     }
 
     // 创建默认管理员
-    const admin = new Salesperson({
+    const admin = await Salesperson.create({
       name: '系统管理员',
       email: 'admin@passport.com',
       password: 'admin123456',
       role: 'admin',
       department: '系统管理'
     });
-
-    await admin.save();
 
     res.json({
       success: true,

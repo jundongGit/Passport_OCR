@@ -40,8 +40,8 @@ FRONTEND_PID=$!
 
 echo "✅ 系统启动完成！"
 echo "📍 后端地址: http://localhost:3060"
-echo "📍 前端地址: http://localhost:3000"
-echo "📍 管理后台: http://localhost:3000/admin"
+echo "📍 前端地址: http://localhost:6066"
+echo "📍 管理后台: http://localhost:6066/admin"
 echo ""
 echo "按 Ctrl+C 停止所有服务"
 

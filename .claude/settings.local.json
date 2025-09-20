@@ -11,7 +11,11 @@
       "Bash(find:*)",
       "Bash(node:*)",
       "Bash(npm start)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(./start.sh:*)",
+      "Bash(brew install:*)",
+      "Bash(brew services start:*)",
+      "Bash(mysql:*)"
     ],
     "deny": [],
     "ask": []

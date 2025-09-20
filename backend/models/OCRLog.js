@@ -1,154 +1,145 @@
-const mongoose = require('mongoose');
+const { DataTypes, Op } = require('sequelize');
+const sequelize = require('../config/database');
 
-const ocrLogSchema = new mongoose.Schema({
+const OCRLog = sequelize.define('OCRLog', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   // 关联信息
   touristId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Tourist',
-    default: null
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'tourists',
+      key: 'id'
+    }
   },
   uploadLink: {
-    type: String,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false
   },
   
   // 操作信息
   operationType: {
-    type: String,
-    enum: ['preview', 'upload', 'update'],
-    required: true
+    type: DataTypes.ENUM('preview', 'upload', 'update'),
+    allowNull: false
   },
   operatorName: {
-    type: String,
-    default: '游客'
+    type: DataTypes.STRING,
+    defaultValue: '游客'
   },
   operatorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Salesperson',
-    default: null
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'salespersons',
+      key: 'id'
+    }
   },
   
   // 图像信息
   imagePath: {
-    type: String,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false
   },
   imageSize: {
-    type: Number,
-    default: 0
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   },
   imageQuality: {
-    isValid: Boolean,
-    issues: [String],
-    metadata: {
-      width: Number,
-      height: Number,
-      format: String,
-      size: Number
-    }
+    type: DataTypes.JSON,
+    allowNull: true
   },
   
   // OCR识别信息
   ocrStatus: {
-    type: String,
-    enum: ['pending', 'processing', 'success', 'failed'],
-    default: 'pending'
+    type: DataTypes.ENUM('pending', 'processing', 'success', 'failed'),
+    defaultValue: 'pending'
   },
   ocrModel: {
-    type: String,
-    default: 'gpt-4o-mini'
+    type: DataTypes.STRING,
+    defaultValue: 'gpt-4o-mini'
   },
   ocrDuration: {
-    type: Number, // 识别耗时（毫秒）
-    default: 0
+    type: DataTypes.INTEGER, // 识别耗时（毫秒）
+    defaultValue: 0
   },
   recognizedData: {
-    fullName: String,
-    chineseName: String,
-    passportNumber: String,
-    gender: String,
-    nationality: String,
-    birthDate: Date,
-    issueDate: Date,
-    expiryDate: Date,
-    birthPlace: String
+    type: DataTypes.JSON,
+    allowNull: true
   },
   ocrError: {
-    type: String,
-    default: null
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   
   // 用户确认的数据
   confirmedData: {
-    fullName: String,
-    passportNumber: String,
-    gender: String,
-    nationality: String,
-    birthDate: Date,
-    issueDate: Date,
-    expiryDate: Date,
-    birthPlace: String,
-    contactPhone: String,
-    contactEmail: String
+    type: DataTypes.JSON,
+    allowNull: true
   },
   
   // 额外信息
   ipAddress: {
-    type: String,
-    default: null
+    type: DataTypes.STRING,
+    allowNull: true
   },
   userAgent: {
-    type: String,
-    default: null
-  },
-  
-  // 时间戳
-  createdAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.TEXT,
+    allowNull: true
   }
+}, {
+  tableName: 'ocr_logs',
+  timestamps: true,
+  createdAt: 'createdAt',
+  updatedAt: false,
+  indexes: [
+    { fields: ['touristId'] },
+    { fields: ['uploadLink'] },
+    { fields: ['ocrStatus'] },
+    { fields: ['createdAt'] }
+  ]
 });
 
-// 添加索引
-ocrLogSchema.index({ touristId: 1 });
-ocrLogSchema.index({ uploadLink: 1 });
-ocrLogSchema.index({ ocrStatus: 1 });
-ocrLogSchema.index({ createdAt: -1 });
-
-// 静态方法：获取统计信息
-ocrLogSchema.statics.getStatistics = async function(dateFrom, dateTo) {
-  const query = {};
+// Static method for statistics
+OCRLog.getStatistics = async function(dateFrom, dateTo) {
+  const whereCondition = {};
   if (dateFrom || dateTo) {
-    query.createdAt = {};
-    if (dateFrom) query.createdAt.$gte = dateFrom;
-    if (dateTo) query.createdAt.$lte = dateTo;
+    whereCondition.createdAt = {};
+    if (dateFrom) whereCondition.createdAt[Op.gte] = dateFrom;
+    if (dateTo) whereCondition.createdAt[Op.lte] = dateTo;
   }
   
-  const stats = await this.aggregate([
-    { $match: query },
-    {
-      $group: {
-        _id: null,
-        totalCount: { $sum: 1 },
-        successCount: {
-          $sum: { $cond: [{ $eq: ['$ocrStatus', 'success'] }, 1, 0] }
-        },
-        failedCount: {
-          $sum: { $cond: [{ $eq: ['$ocrStatus', 'failed'] }, 1, 0] }
-        },
-        avgDuration: { $avg: '$ocrDuration' },
-        totalDuration: { $sum: '$ocrDuration' }
-      }
-    }
-  ]);
+  const stats = await this.findAll({
+    where: whereCondition,
+    attributes: [
+      [sequelize.fn('COUNT', sequelize.col('id')), 'totalCount'],
+      [sequelize.fn('SUM', sequelize.literal("CASE WHEN ocrStatus = 'success' THEN 1 ELSE 0 END")), 'successCount'],
+      [sequelize.fn('SUM', sequelize.literal("CASE WHEN ocrStatus = 'failed' THEN 1 ELSE 0 END")), 'failedCount'],
+      [sequelize.fn('AVG', sequelize.col('ocrDuration')), 'avgDuration'],
+      [sequelize.fn('SUM', sequelize.col('ocrDuration')), 'totalDuration']
+    ],
+    raw: true
+  });
   
-  return stats[0] || {
+  const result = stats[0] || {
     totalCount: 0,
     successCount: 0,
     failedCount: 0,
     avgDuration: 0,
     totalDuration: 0
   };
+  
+  // Convert strings to numbers
+  return {
+    totalCount: parseInt(result.totalCount) || 0,
+    successCount: parseInt(result.successCount) || 0,
+    failedCount: parseInt(result.failedCount) || 0,
+    avgDuration: parseFloat(result.avgDuration) || 0,
+    totalDuration: parseInt(result.totalDuration) || 0
+  };
 };
 
-module.exports = mongoose.model('OCRLog', ocrLogSchema);
+module.exports = OCRLog;

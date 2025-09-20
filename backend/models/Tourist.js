@@ -1,136 +1,134 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const touristSchema = new mongoose.Schema({
+const Tourist = sequelize.define('Tourist', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   tourId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Tour',
-    required: true
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'tours',
+      key: 'id'
+    }
   },
   touristName: {
-    type: String,
-    required: true,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
   },
   salesName: {
-    type: String,
-    required: true,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
   },
   salespersonId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Salesperson',
-    default: null
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'salespersons',
+      key: 'id'
+    }
   },
   // 新增字段
   ekok: {
-    type: String,
-    default: null,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: true
   },
   contactPhone: {
-    type: String,
-    default: null,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: true
   },
   contactEmail: {
-    type: String,
-    default: null,
-    trim: true,
-    lowercase: true
+    type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      isEmail: true
+    },
+    set(value) {
+      if (value) {
+        this.setDataValue('contactEmail', value.toLowerCase().trim());
+      }
+    }
   },
   birthPlace: {
-    type: String,
-    default: null,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: true
   },
   remarks: {
-    type: String,
-    default: null,
-    trim: true
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   touristType: {
-    type: String,
-    enum: ['ADT', 'CHD'],
-    default: 'ADT'
+    type: DataTypes.ENUM('ADT', 'CHD'),
+    defaultValue: 'ADT'
   },
   roomType: {
-    type: String,
-    enum: ['单人间', '双人间', null],
-    default: null
+    type: DataTypes.ENUM('单人间', '双人间'),
+    allowNull: true
   },
   passportPhoto: {
-    type: String,
-    default: null
+    type: DataTypes.STRING,
+    allowNull: true
   },
   passportName: {
-    type: String,
-    default: null,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: true
   },
   passportNumber: {
-    type: String,
-    default: null,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: true
   },
   nationality: {
-    type: String,
-    default: null,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: true
   },
   gender: {
-    type: String,
-    enum: ['M', 'F', null],
-    default: null
+    type: DataTypes.ENUM('M', 'F'),
+    allowNull: true
   },
   passportIssueDate: {
-    type: Date,
-    default: null
+    type: DataTypes.DATE,
+    allowNull: true
   },
   passportExpiryDate: {
-    type: Date,
-    default: null
+    type: DataTypes.DATE,
+    allowNull: true
   },
   passportBirthDate: {
-    type: Date,
-    default: null
+    type: DataTypes.DATE,
+    allowNull: true
   },
   uploadLink: {
-    type: String,
-    unique: true,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
   },
   uploadStatus: {
-    type: String,
-    enum: ['pending', 'uploaded', 'verified', 'rejected'],
-    default: 'pending'
+    type: DataTypes.ENUM('pending', 'uploaded', 'verified', 'rejected'),
+    defaultValue: 'pending'
   },
   rejectionReason: {
-    type: String,
-    default: null
+    type: DataTypes.TEXT,
+    allowNull: true
   },
+  // Recognized data as JSON
   recognizedData: {
-    name: String,
-    passportNumber: String,
-    gender: String,
-    nationality: String,
-    birthDate: Date,
-    birthPlace: String,
-    issueDate: Date,
-    expiryDate: Date
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.JSON,
+    allowNull: true
   }
+}, {
+  tableName: 'tourists',
+  timestamps: true,
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 });
 
-touristSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
-
-module.exports = mongoose.model('Tourist', touristSchema);
+module.exports = Tourist;

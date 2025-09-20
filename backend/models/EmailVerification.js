@@ -1,68 +1,95 @@
-const mongoose = require('mongoose');
+const { DataTypes, Op } = require('sequelize');
+const sequelize = require('../config/database');
 
-const emailVerificationSchema = new mongoose.Schema({
+const EmailVerification = sequelize.define('EmailVerification', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   email: {
-    type: String,
-    required: true,
-    lowercase: true,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      isEmail: true,
+      notEmpty: true
+    },
+    set(value) {
+      this.setDataValue('email', value.toLowerCase().trim());
+    }
   },
   code: {
-    type: String,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false
   },
   uploadLink: {
-    type: String,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false
   },
   verified: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   attempts: {
-    type: Number,
-    default: 0
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   },
   maxAttempts: {
-    type: Number,
-    default: 3
+    type: DataTypes.INTEGER,
+    defaultValue: 3
   },
   expiresAt: {
-    type: Date,
-    required: true,
-    default: () => new Date(Date.now() + 10 * 60 * 1000) // 10分钟后过期
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: () => new Date(Date.now() + 10 * 60 * 1000) // 10分钟后过期
   }
+}, {
+  tableName: 'email_verifications',
+  timestamps: true,
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  indexes: [
+    { 
+      fields: ['email', 'uploadLink'],
+      unique: false
+    },
+    { 
+      fields: ['expiresAt']
+    }
+  ]
 });
 
-// 添加索引以提高查询性能
-emailVerificationSchema.index({ email: 1, uploadLink: 1 });
-emailVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL索引，自动删除过期记录
-
-// 静态方法：创建或更新验证码
-emailVerificationSchema.statics.createOrUpdateVerification = async function(email, uploadLink, code) {
-  return await this.findOneAndUpdate(
-    { email, uploadLink },
-    {
+// Static method: Create or update verification
+EmailVerification.createOrUpdateVerification = async function(email, uploadLink, code) {
+  const [verification, created] = await this.findOrCreate({
+    where: { email, uploadLink },
+    defaults: {
       code,
       verified: false,
       attempts: 0,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      createdAt: new Date()
-    },
-    { upsert: true, new: true }
-  );
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+    }
+  });
+
+  if (!created) {
+    verification.code = code;
+    verification.verified = false;
+    verification.attempts = 0;
+    verification.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await verification.save();
+  }
+
+  return verification;
 };
 
-// 静态方法：验证验证码
-emailVerificationSchema.statics.verifyCode = async function(email, uploadLink, code) {
+// Static method: Verify code
+EmailVerification.verifyCode = async function(email, uploadLink, code) {
   const verification = await this.findOne({ 
-    email, 
-    uploadLink, 
-    expiresAt: { $gt: new Date() } 
+    where: { 
+      email, 
+      uploadLink, 
+      expiresAt: { [Op.gt]: new Date() } 
+    } 
   });
 
   if (!verification) {
@@ -92,16 +119,18 @@ emailVerificationSchema.statics.verifyCode = async function(email, uploadLink, c
   return { success: true };
 };
 
-// 静态方法：检查邮箱是否已验证
-emailVerificationSchema.statics.isEmailVerified = async function(email, uploadLink) {
+// Static method: Check if email is verified
+EmailVerification.isEmailVerified = async function(email, uploadLink) {
   const verification = await this.findOne({ 
-    email, 
-    uploadLink, 
-    verified: true,
-    expiresAt: { $gt: new Date() }
+    where: { 
+      email, 
+      uploadLink, 
+      verified: true,
+      expiresAt: { [Op.gt]: new Date() }
+    } 
   });
 
   return !!verification;
 };
 
-module.exports = mongoose.model('EmailVerification', emailVerificationSchema);
+module.exports = EmailVerification;

@@ -1,76 +1,83 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const salespersonSchema = new mongoose.Schema({
+const Salesperson = sequelize.define('Salesperson', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
   },
   email: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
     unique: true,
-    lowercase: true,
-    trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, '请填写有效的邮箱地址']
+    validate: {
+      isEmail: true,
+      notEmpty: true
+    },
+    set(value) {
+      this.setDataValue('email', value.toLowerCase().trim());
+    }
   },
   password: {
-    type: String,
-    required: true,
-    minlength: 6
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      len: [6, 255]
+    }
   },
   role: {
-    type: String,
-    enum: ['salesperson', 'admin'],
-    default: 'salesperson'
+    type: DataTypes.ENUM('salesperson', 'admin'),
+    defaultValue: 'salesperson'
   },
   isActive: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   },
   phone: {
-    type: String,
-    default: null
+    type: DataTypes.STRING,
+    allowNull: true
   },
   department: {
-    type: String,
-    default: null
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.STRING,
+    allowNull: true
   },
   lastLoginAt: {
-    type: Date,
-    default: null
+    type: DataTypes.DATE,
+    allowNull: true
+  }
+}, {
+  tableName: 'salespersons',
+  timestamps: true,
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  hooks: {
+    beforeSave: async (salesperson) => {
+      if (salesperson.changed('password')) {
+        salesperson.password = await bcrypt.hash(salesperson.password, 10);
+      }
+    }
   }
 });
 
-// 保存前加密密码
-salespersonSchema.pre('save', async function(next) {
-  if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password, 10);
-  }
-  this.updatedAt = Date.now();
-  next();
-});
-
-// 验证密码
-salespersonSchema.methods.comparePassword = async function(password) {
+// Instance methods
+Salesperson.prototype.comparePassword = async function(password) {
   return await bcrypt.compare(password, this.password);
 };
 
-// 生成JWT token
-salespersonSchema.methods.generateAuthToken = function() {
+Salesperson.prototype.generateAuthToken = function() {
   const token = jwt.sign(
     { 
-      _id: this._id, 
+      id: this.id, 
       email: this.email, 
       role: this.role,
       name: this.name 
@@ -81,17 +88,15 @@ salespersonSchema.methods.generateAuthToken = function() {
   return token;
 };
 
-// 更新最后登录时间
-salespersonSchema.methods.updateLastLogin = async function() {
+Salesperson.prototype.updateLastLogin = async function() {
   this.lastLoginAt = new Date();
   await this.save();
 };
 
-// 隐藏密码字段
-salespersonSchema.methods.toJSON = function() {
-  const obj = this.toObject();
-  delete obj.password;
-  return obj;
+Salesperson.prototype.toJSON = function() {
+  const values = Object.assign({}, this.get());
+  delete values.password;
+  return values;
 };
 
-module.exports = mongoose.model('Salesperson', salespersonSchema);
+module.exports = Salesperson;

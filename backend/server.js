@@ -1,9 +1,10 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
+const sequelize = require('./config/database');
+const models = require('./models');
 
 dotenv.config();
 
@@ -19,12 +20,19 @@ if (!fs.existsSync(uploadDir)) {
 }
 app.use('/uploads', express.static(uploadDir));
 
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB connected successfully'))
-.catch(err => console.error('MongoDB connection error:', err));
+// Test database connection
+sequelize.authenticate()
+  .then(() => {
+    console.log('MySQL connected successfully');
+    // Sync database models
+    return sequelize.sync({ alter: true });
+  })
+  .then(() => {
+    console.log('Database synchronized successfully');
+  })
+  .catch(err => {
+    console.error('Database connection error:', err);
+  });
 
 const tourRoutes = require('./routes/tourRoutes');
 const touristRoutes = require('./routes/touristRoutes');

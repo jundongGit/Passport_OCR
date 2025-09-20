@@ -1,19 +1,18 @@
-const Tour = require('../models/Tour');
-const Tourist = require('../models/Tourist');
+const { Tour, Tourist } = require('../models');
+const { Op } = require('sequelize');
 
 exports.createTour = async (req, res) => {
   try {
     const { productName, departureDate } = req.body;
     
-    const newTour = new Tour({
+    const newTour = await Tour.create({
       productName,
       departureDate
     });
     
-    const savedTour = await newTour.save();
     res.status(201).json({
       success: true,
-      data: savedTour
+      data: newTour
     });
   } catch (error) {
     res.status(400).json({
@@ -25,33 +24,41 @@ exports.createTour = async (req, res) => {
 
 exports.getAllTours = async (req, res) => {
   try {
-    const tours = await Tour.find().sort({ departureDate: -1 });
+    const tours = await Tour.findAll({
+      order: [['departureDate', 'DESC']]
+    });
     
     // 如果是销售人员请求，添加该销售人员的游客数量和状态统计
     if (req.headers.authorization && req.salesperson && req.salesperson.role === 'salesperson') {
       const toursWithCount = await Promise.all(tours.map(async (tour) => {
         // 总游客数
-        const touristCount = await Tourist.countDocuments({
-          tourId: tour._id,
-          salespersonId: req.salesperson._id
+        const touristCount = await Tourist.count({
+          where: {
+            tourId: tour.id,
+            salespersonId: req.salesperson.id
+          }
         });
         
         // 已验证游客数
-        const verifiedCount = await Tourist.countDocuments({
-          tourId: tour._id,
-          salespersonId: req.salesperson._id,
-          uploadStatus: 'verified'
+        const verifiedCount = await Tourist.count({
+          where: {
+            tourId: tour.id,
+            salespersonId: req.salesperson.id,
+            uploadStatus: 'verified'
+          }
         });
         
         // 待处理游客数（包括pending、uploaded、rejected）
-        const pendingCount = await Tourist.countDocuments({
-          tourId: tour._id,
-          salespersonId: req.salesperson._id,
-          uploadStatus: { $in: ['pending', 'uploaded', 'rejected'] }
+        const pendingCount = await Tourist.count({
+          where: {
+            tourId: tour.id,
+            salespersonId: req.salesperson.id,
+            uploadStatus: { [Op.in]: ['pending', 'uploaded', 'rejected'] }
+          }
         });
         
         return {
-          ...tour.toObject(),
+          ...tour.toJSON(),
           touristCount,
           verifiedCount,
           pendingCount
@@ -68,18 +75,22 @@ exports.getAllTours = async (req, res) => {
     if (req.headers.authorization && req.salesperson && req.salesperson.role === 'admin') {
       // 为管理员添加每个产品的总游客统计
       const toursWithAdminStats = await Promise.all(tours.map(async (tour) => {
-        const totalTourists = await Tourist.countDocuments({ tourId: tour._id });
-        const verifiedTourists = await Tourist.countDocuments({ 
-          tourId: tour._id, 
-          uploadStatus: 'verified' 
+        const totalTourists = await Tourist.count({ where: { tourId: tour.id } });
+        const verifiedTourists = await Tourist.count({ 
+          where: { 
+            tourId: tour.id, 
+            uploadStatus: 'verified' 
+          }
         });
-        const pendingTourists = await Tourist.countDocuments({ 
-          tourId: tour._id, 
-          uploadStatus: { $in: ['pending', 'uploaded', 'rejected'] }
+        const pendingTourists = await Tourist.count({ 
+          where: { 
+            tourId: tour.id, 
+            uploadStatus: { [Op.in]: ['pending', 'uploaded', 'rejected'] }
+          }
         });
         
         return {
-          ...tour.toObject(),
+          ...tour.toJSON(),
           totalTourists,
           verifiedTourists,
           pendingTourists
@@ -106,7 +117,7 @@ exports.getAllTours = async (req, res) => {
 
 exports.getTourById = async (req, res) => {
   try {
-    const tour = await Tour.findById(req.params.id);
+    const tour = await Tour.findByPk(req.params.id);
     if (!tour) {
       return res.status(404).json({
         success: false,
@@ -128,22 +139,26 @@ exports.getTourById = async (req, res) => {
 exports.updateTour = async (req, res) => {
   try {
     const { productName, departureDate } = req.body;
-    const tour = await Tour.findByIdAndUpdate(
-      req.params.id,
-      { productName, departureDate, updatedAt: Date.now() },
-      { new: true, runValidators: true }
+    const [updatedRowsCount] = await Tour.update(
+      { productName, departureDate },
+      { 
+        where: { id: req.params.id },
+        returning: true
+      }
     );
     
-    if (!tour) {
+    if (updatedRowsCount === 0) {
       return res.status(404).json({
         success: false,
         error: 'Tour not found'
       });
     }
     
+    const updatedTour = await Tour.findByPk(req.params.id);
+    
     res.json({
       success: true,
-      data: tour
+      data: updatedTour
     });
   } catch (error) {
     res.status(400).json({
@@ -155,9 +170,11 @@ exports.updateTour = async (req, res) => {
 
 exports.deleteTour = async (req, res) => {
   try {
-    const tour = await Tour.findByIdAndDelete(req.params.id);
+    const deletedRowsCount = await Tour.destroy({
+      where: { id: req.params.id }
+    });
     
-    if (!tour) {
+    if (deletedRowsCount === 0) {
       return res.status(404).json({
         success: false,
         error: 'Tour not found'
