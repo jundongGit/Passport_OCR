@@ -110,58 +110,11 @@ function SalesTours() {
         headers: authService.getAuthHeaders()
       });
       
-      const uploadUrl = response.data.uploadUrl; // 后端已经返回完整URL
-      
-      Modal.success({
-        title: '游客添加成功',
-        width: 600,
-        content: (
-          <div>
-            <p>游客 <strong>{nameValidation.formatted}</strong> 已成功添加</p>
-            <div style={{ marginTop: 16 }}>
-              <Alert
-                message="护照上传链接"
-                description={uploadUrl}
-                type="info"
-                showIcon
-              />
-              <Button 
-                type="primary" 
-                icon={<CopyOutlined />}
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(uploadUrl);
-                    message.success('链接已复制到剪贴板');
-                  } catch (error) {
-                    // 降级方案：使用传统方法复制
-                    const textArea = document.createElement('textarea');
-                    textArea.value = uploadUrl;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    try {
-                      document.execCommand('copy');
-                      message.success('链接已复制到剪贴板');
-                    } catch (copyError) {
-                      message.error('复制失败，请手动复制链接');
-                    }
-                    document.body.removeChild(textArea);
-                  }
-                }}
-                style={{ marginTop: 8 }}
-                block
-              >
-                复制链接
-              </Button>
-            </div>
-          </div>
-        ),
-        onOk: () => {
-          form.resetFields();
-          setAddTouristModalVisible(false);
-          // 刷新游客列表
-          handleViewTourists(selectedTourInfo);
-        }
-      });
+      message.success(`游客 ${nameValidation.formatted} 添加成功`);
+      form.resetFields();
+      setAddTouristModalVisible(false);
+      // 刷新游客列表
+      handleViewTourists(selectedTourInfo);
     } catch (error) {
       message.error(error.response?.data?.error || '添加游客失败');
     }
