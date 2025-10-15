@@ -987,6 +987,15 @@ function SalesTours() {
                       上传护照
                     </Button>
                   )}
+                  {record.uploadStatus !== 'verified' && (
+                    <Button
+                      size="small"
+                      icon={<CopyOutlined />}
+                      onClick={() => copyUploadLink(record.uploadLink)}
+                    >
+                      发给客人
+                    </Button>
+                  )}
                   <Button
                     size="small"
                     icon={<EditOutlined />}
@@ -1000,15 +1009,6 @@ function SalesTours() {
                   >
                     备注
                   </Button>
-                  {record.uploadStatus !== 'verified' && (
-                    <Button
-                      size="small"
-                      icon={<CopyOutlined />}
-                      onClick={() => copyUploadLink(record.uploadLink)}
-                    >
-                      复制链接
-                    </Button>
-                  )}
                   {record.passportPhoto && (
                     <Button
                       size="small"
