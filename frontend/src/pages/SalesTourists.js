@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Space, message, Card, Tag, Popconfirm, Select, Alert, DatePicker } from 'antd';
-import { PlusOutlined, CopyOutlined, ExclamationCircleOutlined, ArrowLeftOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Space, message, Card, Tag, Select, Alert, Upload, Spin } from 'antd';
+import { CopyOutlined, ArrowLeftOutlined, UserOutlined, EditOutlined, UploadOutlined, InboxOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import moment from 'moment';
@@ -11,6 +11,7 @@ import './SalesTourists.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3060/api';
 const { Option } = Select;
+const { Dragger } = Upload;
 
 function SalesTourists() {
   const [tourists, setTourists] = useState([]);
@@ -18,10 +19,14 @@ function SalesTourists() {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [selectedTour, setSelectedTour] = useState(null);
   const [editingTourist, setEditingTourist] = useState(null);
+  const [uploadingTourist, setUploadingTourist] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [uploadingPassport, setUploadingPassport] = useState(false);
+  const [recognizedData, setRecognizedData] = useState(null);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const navigate = useNavigate();
@@ -206,6 +211,77 @@ function SalesTourists() {
     }
   };
 
+  const handleUploadPassport = (tourist) => {
+    setUploadingTourist(tourist);
+    setRecognizedData(null);
+    setUploadModalVisible(true);
+  };
+
+  const handlePassportUpload = async (file) => {
+    setUploadingPassport(true);
+    const formData = new FormData();
+    formData.append('passport', file);
+
+    try {
+      const response = await axios.post(
+        `${API_BASE}/tourists/${uploadingTourist.id}/update-passport`,
+        formData,
+        {
+          headers: {
+            ...authService.getAuthHeaders(),
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        message.success(response.data.message || '护照上传成功');
+        setRecognizedData(response.data.recognizedData);
+        fetchMyTourists();
+
+        // 如果识别成功，显示识别结果
+        if (response.data.recognizedData) {
+          Modal.success({
+            title: '护照识别成功',
+            width: 600,
+            content: (
+              <div>
+                <p>系统已自动识别护照信息：</p>
+                <ul style={{ textAlign: 'left', lineHeight: '2' }}>
+                  <li><strong>姓名：</strong>{response.data.recognizedData.fullName}</li>
+                  <li><strong>护照号码：</strong>{response.data.recognizedData.passportNumber}</li>
+                  <li><strong>性别：</strong>{response.data.recognizedData.gender}</li>
+                  <li><strong>国籍：</strong>{response.data.recognizedData.nationality}</li>
+                  <li><strong>出生日期：</strong>{response.data.recognizedData.birthDate}</li>
+                  <li><strong>出生地：</strong>{response.data.recognizedData.birthPlace}</li>
+                  <li><strong>签发日期：</strong>{response.data.recognizedData.issueDate}</li>
+                  <li><strong>有效期至：</strong>{response.data.recognizedData.expiryDate}</li>
+                </ul>
+              </div>
+            ),
+            onOk: () => {
+              setUploadModalVisible(false);
+              setUploadingTourist(null);
+            }
+          });
+        } else {
+          setUploadModalVisible(false);
+          setUploadingTourist(null);
+        }
+      }
+    } catch (error) {
+      if (error.response?.data?.error) {
+        message.error(error.response.data.error);
+      } else {
+        message.error('护照上传失败，请重试');
+      }
+    } finally {
+      setUploadingPassport(false);
+    }
+
+    return false; // 阻止默认上传行为
+  };
+
   const copyUploadLink = async (uploadLink) => {
     const fullUrl = `${window.location.origin}/upload/${uploadLink}`;
     
@@ -347,10 +423,21 @@ function SalesTourists() {
     {
       title: '操作',
       key: 'action',
-      width: 180,
+      width: 250,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
+          {!record.passportPhoto && (
+            <Button
+              size="small"
+              type="primary"
+              icon={<UploadOutlined />}
+              onClick={() => handleUploadPassport(record)}
+              title="手动上传护照"
+            >
+              上传护照
+            </Button>
+          )}
           <Button
             size="small"
             icon={<CopyOutlined />}
@@ -360,7 +447,7 @@ function SalesTourists() {
             复制链接
           </Button>
           {record.passportPhoto && (
-            <Button 
+            <Button
               size="small"
               type="link"
               onClick={() => window.open(`http://localhost:3060${record.passportPhoto}`, '_blank')}
@@ -612,6 +699,75 @@ function SalesTourists() {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 上传护照弹窗 */}
+      <Modal
+        title={`为 ${uploadingTourist?.touristName} 上传护照`}
+        open={uploadModalVisible}
+        onCancel={() => {
+          if (!uploadingPassport) {
+            setUploadModalVisible(false);
+            setUploadingTourist(null);
+            setRecognizedData(null);
+          }
+        }}
+        footer={null}
+        width={600}
+        maskClosable={!uploadingPassport}
+        keyboard={!uploadingPassport}
+      >
+        <Spin spinning={uploadingPassport} tip="正在上传并识别护照信息...">
+          <Alert
+            message="上传说明"
+            description={
+              <div>
+                <p>• 支持格式：JPG、JPEG、PNG</p>
+                <p>• 文件大小：不超过 10MB</p>
+                <p>• 系统将自动使用 AI 识别护照信息</p>
+                <p>• 请确保照片清晰，护照信息完整可见</p>
+              </div>
+            }
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+
+          <Dragger
+            name="passport"
+            accept="image/jpeg,image/jpg,image/png"
+            multiple={false}
+            beforeUpload={handlePassportUpload}
+            showUploadList={false}
+            disabled={uploadingPassport}
+          >
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">点击或拖拽护照图片到此区域上传</p>
+            <p className="ant-upload-hint">
+              系统将自动识别护照信息，包括姓名、护照号码、国籍等
+            </p>
+          </Dragger>
+
+          {recognizedData && (
+            <Alert
+              message="识别成功"
+              description={
+                <div>
+                  <p>护照信息已成功识别并保存</p>
+                  <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+                    <li>姓名：{recognizedData.fullName}</li>
+                    <li>护照号：{recognizedData.passportNumber}</li>
+                  </ul>
+                </div>
+              }
+              type="success"
+              showIcon
+              style={{ marginTop: 16 }}
+            />
+          )}
+        </Spin>
       </Modal>
     </div>
   );
