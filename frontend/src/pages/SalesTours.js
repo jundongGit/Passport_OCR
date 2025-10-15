@@ -880,14 +880,14 @@ function SalesTours() {
               title: '国籍',
               dataIndex: 'nationality',
               key: 'nationality',
-              width: 80,
+              width: 60,
               render: (code) => code || '-',
             },
             {
               title: '性别',
               dataIndex: 'gender',
               key: 'gender',
-              width: 60,
+              width: 50,
               render: (gender) => {
                 if (gender === 'M') return '男';
                 if (gender === 'F') return '女';
@@ -898,76 +898,8 @@ function SalesTours() {
               title: '出生地',
               dataIndex: 'birthPlace',
               key: 'birthPlace',
-              width: 120,
-              render: (text) => text || '-',
-            },
-            {
-              title: '联系电话',
-              dataIndex: 'contactPhone',
-              key: 'contactPhone',
-              width: 120,
-              render: (text) => text || '-',
-            },
-            {
-              title: '联系邮箱',
-              dataIndex: 'contactEmail',
-              key: 'contactEmail',
-              width: 150,
-              render: (text) => text || '-',
-            },
-            {
-              title: '房型',
-              dataIndex: 'roomType',
-              key: 'roomType',
-              width: 80,
-              render: (type) => {
-                if (type === 'SINGLE') return <Tag color="orange">单人房</Tag>;
-                if (type === 'TWIN') return <Tag color="purple">双床房</Tag>;
-                return '-';
-              },
-            },
-            {
-              title: '备注',
-              dataIndex: 'remarks',
-              key: 'remarks',
-              width: 150,
-              render: (text) => text || '-',
-            },
-            {
-              title: '出生日期',
-              dataIndex: 'passportBirthDate',
-              key: 'passportBirthDate',
               width: 100,
-              render: (date) => {
-                if (!date) return '-';
-                return moment(date).format('YYYY-MM-DD');
-              },
-            },
-            {
-              title: '护照有效期',
-              dataIndex: 'passportExpiryDate',
-              key: 'passportExpiryDate',
-              width: 100,
-              render: (date) => {
-                if (!date) return '-';
-                return moment(date).format('YYYY-MM-DD');
-              },
-            },
-            {
-              title: '上传状态',
-              dataIndex: 'uploadStatus',
-              key: 'uploadStatus',
-              width: 100,
-              render: (status) => {
-                const statusMap = {
-                  'pending': { text: '待上传', color: 'default' },
-                  'uploaded': { text: '已上传', color: 'processing' },
-                  'verified': { text: '已验证', color: 'success' },
-                  'rejected': { text: '已拒绝', color: 'error' }
-                };
-                const config = statusMap[status] || { text: status, color: 'default' };
-                return <Tag color={config.color}>{config.text}</Tag>;
-              },
+              render: (text) => text || '-',
             },
             {
               title: '操作',
@@ -1037,7 +969,6 @@ function SalesTours() {
           dataSource={selectedTourTourists}
           rowKey="id"
           loading={touristsLoading}
-          scroll={{ x: 1800 }}
           pagination={false}
           locale={{
             emptyText: (
