@@ -599,13 +599,14 @@ function TourManagement() {
       title: '游客姓名',
       dataIndex: 'touristName',
       key: 'touristName',
-      width: 120,
+      width: 100,
+      fixed: 'left',
     },
     {
       title: 'EKOK',
       dataIndex: 'ekok',
       key: 'ekok',
-      width: 100,
+      width: 80,
       render: (text, record, index) => {
         // 检查是否与前一行的EKOK相同
         const prevRecord = index > 0 ? tourists[index - 1] : null;
@@ -622,10 +623,10 @@ function TourManagement() {
       },
     },
     {
-      title: '游客类型',
+      title: '类型',
       dataIndex: 'touristType',
       key: 'touristType',
-      width: 80,
+      width: 60,
       render: (type) => {
         if (type === 'ADT') {
           return <Tag color="blue">ADT</Tag>;
@@ -636,30 +637,30 @@ function TourManagement() {
       },
     },
     {
-      title: '销售姓名',
+      title: '销售',
       dataIndex: 'salesName',
       key: 'salesName',
-      width: 100,
+      width: 80,
     },
     {
       title: '护照号码',
       dataIndex: 'passportNumber',
       key: 'passportNumber',
-      width: 120,
+      width: 100,
       render: (text) => text || '-',
     },
     {
       title: '护照姓名',
       dataIndex: 'passportName',
       key: 'passportName',
-      width: 150,
+      width: 130,
       render: (text) => text || '-',
     },
     {
       title: '性别',
       dataIndex: 'gender',
       key: 'gender',
-      width: 50,
+      width: 45,
       render: (gender) => {
         if (!gender) return '-';
         return gender === 'M' ? '男' : '女';
@@ -669,15 +670,102 @@ function TourManagement() {
       title: '国籍',
       dataIndex: 'nationality',
       key: 'nationality',
-      width: 60,
+      width: 50,
       render: (code) => code || '-',
     },
     {
       title: '出生地',
       dataIndex: 'birthPlace',
       key: 'birthPlace',
-      width: 100,
+      width: 80,
       render: (text) => text || '-',
+    },
+    {
+      title: '联系电话',
+      dataIndex: 'contactPhone',
+      key: 'contactPhone',
+      width: 110,
+      render: (text) => text || '-',
+    },
+    {
+      title: '联系邮箱',
+      dataIndex: 'contactEmail',
+      key: 'contactEmail',
+      width: 150,
+      render: (text) => text || '-',
+    },
+    {
+      title: '房型',
+      dataIndex: 'roomType',
+      key: 'roomType',
+      width: 100,
+      render: (roomType, record) => (
+        <Select
+          value={roomType || ''}
+          style={{ width: '100%' }}
+          placeholder="选择房型"
+          onChange={(value) => handleUpdateRoomType(record.id, value)}
+          size="small"
+        >
+          <Option value="">未分配</Option>
+          <Option value="单人间">单人间</Option>
+          <Option value="双人间">双人间</Option>
+        </Select>
+      ),
+    },
+    {
+      title: '备注',
+      dataIndex: 'remarks',
+      key: 'remarks',
+      width: 120,
+      ellipsis: true,
+      render: (text) => text || '-',
+    },
+    {
+      title: '出生日期',
+      dataIndex: 'passportBirthDate',
+      key: 'passportBirthDate',
+      width: 95,
+      render: (date) => {
+        if (!date) return '-';
+        return moment(date).format('DD/MM/YYYY');
+      },
+    },
+    {
+      title: '签发日期',
+      dataIndex: 'passportIssueDate',
+      key: 'passportIssueDate',
+      width: 95,
+      render: (date) => {
+        if (!date) return '-';
+        return moment(date).format('DD/MM/YYYY');
+      },
+    },
+    {
+      title: '有效期',
+      dataIndex: 'passportExpiryDate',
+      key: 'passportExpiryDate',
+      width: 95,
+      render: (date) => {
+        if (!date) return '-';
+        return moment(date).format('DD/MM/YYYY');
+      },
+    },
+    {
+      title: '状态',
+      dataIndex: 'uploadStatus',
+      key: 'uploadStatus',
+      width: 75,
+      render: (status) => {
+        const statusMap = {
+          'pending': { text: '待上传', color: 'default' },
+          'uploaded': { text: '已上传', color: 'processing' },
+          'verified': { text: '已验证', color: 'success' },
+          'rejected': { text: '已拒绝', color: 'error' }
+        };
+        const config = statusMap[status] || { text: status, color: 'default' };
+        return <Tag color={config.color}>{config.text}</Tag>;
+      },
     },
     {
       title: '操作',
@@ -865,6 +953,7 @@ function TourManagement() {
           columns={touristColumns}
           dataSource={tourists}
           rowKey="id"
+          scroll={{ x: 1800 }}
           pagination={false}
           rowClassName={(record, index) => {
             // 为相同EKOK的行添加不同的背景色
