@@ -449,6 +449,7 @@ exports.updatePassportPhoto = async (req, res) => {
     tourist.passportNumber = passportData.passportNumber;
     tourist.gender = passportData.gender;
     tourist.nationality = passportData.nationality;
+    tourist.birthPlace = passportData.birthPlace ? passportData.birthPlace.toUpperCase() : null;
     tourist.passportBirthDate = parseDDMMYYYY(passportData.birthDate);
     tourist.passportIssueDate = parseDDMMYYYY(passportData.issueDate);
     tourist.passportExpiryDate = parseDDMMYYYY(passportData.expiryDate);
