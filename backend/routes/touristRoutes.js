@@ -39,6 +39,7 @@ router.get('/tour/:tourId', auth, touristController.getTouristsByTour);
 router.get('/link/:uploadLink', touristController.getTouristByUploadLink);
 router.get('/:id', auth, touristController.getTouristById);
 router.put('/:id', auth, touristController.updateTourist);
+router.post('/:id/update-passport-preview', auth, upload.single('passport'), touristController.updatePassportPreview);
 router.post('/:id/update-passport', optionalAuth, upload.single('passport'), touristController.updatePassportPhoto);
 router.delete('/:id', auth, touristController.deleteTourist);
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Card, Tag, message, Space, Input, Select, Modal, Empty, Form, Popconfirm, Alert, Row, Col, Upload, Image, Spin } from 'antd';
-import { EyeOutlined, TeamOutlined, PlusOutlined, CopyOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined, InboxOutlined } from '@ant-design/icons';
+import { Table, Button, Card, Tag, message, Space, Input, Select, Modal, Empty, Form, Popconfirm, Alert, Row, Col, Upload, Image, Spin, Steps, Progress } from 'antd';
+import { EyeOutlined, TeamOutlined, PlusOutlined, CopyOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined, InboxOutlined, CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import moment from 'moment';
@@ -12,6 +12,7 @@ import './SalesTours.css';
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3060/api';
 const { Option } = Select;
 const { Dragger } = Upload;
+const { Step } = Steps;
 
 function SalesTours() {
   const [tours, setTours] = useState([]);
@@ -32,7 +33,14 @@ function SalesTours() {
   const [uploadingTourist, setUploadingTourist] = useState(null);
   const [uploadingPassport, setUploadingPassport] = useState(false);
   const [recognizedData, setRecognizedData] = useState(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [tempImageUrl, setTempImageUrl] = useState(null);
+  const [tempImageFile, setTempImageFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [progressText, setProgressText] = useState('');
+  const [confirming, setConfirming] = useState(false);
   const [form] = Form.useForm();
+  const [uploadForm] = Form.useForm();
   const [editForm] = Form.useForm();
   const [remarksForm] = Form.useForm();
   const navigate = useNavigate();
@@ -262,18 +270,139 @@ function SalesTours() {
     }
   };
 
+  // 打开上传护照弹窗
   const handleUploadPassport = (tourist) => {
     setUploadingTourist(tourist);
     setRecognizedData(null);
+    setCurrentStep(0);
+    setTempImageUrl(null);
+    setTempImageFile(null);
+    setUploadProgress(0);
+    setProgressText('');
+    uploadForm.resetFields();
     setUploadModalVisible(true);
   };
 
+  // 处理护照图片上传（预览模式）
   const handleManualPassportUpload = async (file) => {
-    setUploadingPassport(true);
+    // 先创建预览
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setTempImageUrl(e.target.result);
+    };
+    reader.readAsDataURL(file);
+    setTempImageFile(file);
+
     const formData = new FormData();
     formData.append('passport', file);
+    formData.append('preview', 'true'); // 告诉后端这只是预览
+
+    setUploadingPassport(true);
+    setUploadProgress(0);
+
+    // 更真实的进度条模拟
+    const progressSteps = [
+      { percent: 20, text: '正在上传图片...' },
+      { percent: 40, text: '图片质量检查中...' },
+      { percent: 60, text: 'AI智能识别中...' },
+      { percent: 80, text: '解析护照信息...' },
+      { percent: 95, text: '完成识别处理...' }
+    ];
+
+    let stepIndex = 0;
+    const progressInterval = setInterval(() => {
+      if (stepIndex < progressSteps.length) {
+        setUploadProgress(progressSteps[stepIndex].percent);
+        setProgressText(progressSteps[stepIndex].text);
+        stepIndex++;
+      } else {
+        clearInterval(progressInterval);
+      }
+    }, 800);
 
     try {
+      const response = await axios.post(
+        `${API_BASE}/tourists/${uploadingTourist.id}/update-passport-preview`,
+        formData,
+        {
+          headers: {
+            ...authService.getAuthHeaders(),
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // 完成进度条
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        setProgressText('识别完成！');
+
+        setRecognizedData(response.data.data);
+
+        // 设置表单默认值
+        let nationality = response.data.data.nationality || 'CHN';
+        if (nationality === 'CHI') {
+          nationality = 'CHN';
+        }
+
+        uploadForm.setFieldsValue({
+          fullName: response.data.data.recognizedName || '',
+          passportNumber: response.data.data.passportNumber || '',
+          gender: response.data.data.gender || 'M',
+          issueDate: response.data.data.issueDate || '',
+          expiryDate: response.data.data.expiryDate || '',
+          birthDate: response.data.data.birthDate || '',
+          birthPlace: response.data.data.birthPlace || '',
+          nationality: nationality
+        });
+
+        setCurrentStep(1);
+        message.success('护照识别成功，请确认信息！');
+      }
+    } catch (error) {
+      clearInterval(progressInterval);
+      const errorMessage = error.response?.data?.error || '识别失败，请重试';
+      message.error(errorMessage);
+      setCurrentStep(0);
+      setTempImageUrl(null);
+      setTempImageFile(null);
+      setUploadProgress(0);
+      setProgressText('');
+    } finally {
+      setUploadingPassport(false);
+    }
+
+    return false;
+  };
+
+  // 最终提交护照信息
+  const handleFinalSubmit = async () => {
+    try {
+      const values = await uploadForm.validateFields();
+
+      // 验证并格式化姓名
+      const nameValidation = validatePassportName(values.fullName);
+      if (!nameValidation.valid) {
+        message.error(nameValidation.error);
+        return;
+      }
+
+      setConfirming(true);
+
+      const formData = new FormData();
+      formData.append('passport', tempImageFile);
+      formData.append('confirmData', JSON.stringify({
+        fullName: nameValidation.formatted,
+        passportNumber: values.passportNumber,
+        gender: values.gender,
+        issueDate: values.issueDate,
+        expiryDate: values.expiryDate,
+        birthDate: values.birthDate,
+        birthPlace: values.birthPlace,
+        nationality: values.nationality
+      }));
+
       const response = await axios.post(
         `${API_BASE}/tourists/${uploadingTourist.id}/update-passport`,
         formData,
@@ -286,53 +415,39 @@ function SalesTours() {
       );
 
       if (response.data.success) {
-        message.success(response.data.message || '护照上传成功');
-        setRecognizedData(response.data.recognizedData);
+        message.success('护照信息已确认并保存！');
+        setUploadModalVisible(false);
+        setUploadingTourist(null);
+        setCurrentStep(0);
+        setTempImageUrl(null);
+        setTempImageFile(null);
+        uploadForm.resetFields();
 
         // 刷新游客列表
         handleViewTourists(selectedTourInfo);
-
-        // 如果识别成功，显示识别结果
-        if (response.data.recognizedData) {
-          Modal.success({
-            title: '护照识别成功',
-            width: 600,
-            content: (
-              <div>
-                <p>系统已自动识别护照信息：</p>
-                <ul style={{ textAlign: 'left', lineHeight: '2' }}>
-                  <li><strong>姓名：</strong>{response.data.recognizedData.fullName}</li>
-                  <li><strong>护照号码：</strong>{response.data.recognizedData.passportNumber}</li>
-                  <li><strong>性别：</strong>{response.data.recognizedData.gender}</li>
-                  <li><strong>国籍：</strong>{response.data.recognizedData.nationality}</li>
-                  <li><strong>出生日期：</strong>{response.data.recognizedData.birthDate}</li>
-                  <li><strong>出生地：</strong>{response.data.recognizedData.birthPlace}</li>
-                  <li><strong>签发日期：</strong>{response.data.recognizedData.issueDate}</li>
-                  <li><strong>有效期至：</strong>{response.data.recognizedData.expiryDate}</li>
-                </ul>
-              </div>
-            ),
-            onOk: () => {
-              setUploadModalVisible(false);
-              setUploadingTourist(null);
-            }
-          });
-        } else {
-          setUploadModalVisible(false);
-          setUploadingTourist(null);
-        }
       }
     } catch (error) {
-      if (error.response?.data?.error) {
-        message.error(error.response.data.error);
+      if (error.response) {
+        message.error(error.response.data.error || '提交失败，请重试');
+      } else if (error.errorFields) {
+        message.error('请填写所有必填项');
       } else {
-        message.error('护照上传失败，请重试');
+        message.error('提交失败，请重试');
       }
     } finally {
-      setUploadingPassport(false);
+      setConfirming(false);
     }
+  };
 
-    return false; // 阻止默认上传行为
+  // 重新上传
+  const handleResetUpload = () => {
+    setCurrentStep(0);
+    setTempImageUrl(null);
+    setTempImageFile(null);
+    setRecognizedData(null);
+    setUploadProgress(0);
+    setProgressText('');
+    uploadForm.resetFields();
   };
 
   const copyUploadLink = async (uploadLink) => {
@@ -1385,73 +1500,279 @@ function SalesTours() {
         </Form>
       </Modal>
 
-      {/* 上传护照弹窗 */}
+      {/* 上传护照弹窗 - 完整流程 */}
       <Modal
         title={`为 ${uploadingTourist?.touristName} 上传护照`}
         open={uploadModalVisible}
         onCancel={() => {
-          if (!uploadingPassport) {
+          if (!uploadingPassport && !confirming) {
             setUploadModalVisible(false);
             setUploadingTourist(null);
+            setCurrentStep(0);
+            setTempImageUrl(null);
+            setTempImageFile(null);
             setRecognizedData(null);
+            uploadForm.resetFields();
           }
         }}
         footer={null}
-        width={600}
-        maskClosable={!uploadingPassport}
-        keyboard={!uploadingPassport}
+        width={1000}
+        maskClosable={!uploadingPassport && !confirming}
+        keyboard={!uploadingPassport && !confirming}
+        destroyOnClose
       >
-        <Spin spinning={uploadingPassport} tip="正在上传并识别护照信息...">
-          <Alert
-            message="上传说明"
-            description={
-              <div>
-                <p>• 支持格式：JPG、JPEG、PNG</p>
-                <p>• 文件大小：不超过 10MB</p>
-                <p>• 系统将自动使用 AI 识别护照信息</p>
-                <p>• 请确保照片清晰，护照信息完整可见</p>
-              </div>
-            }
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
+        <Steps current={currentStep} style={{ marginBottom: 24 }}>
+          <Step title="上传护照" />
+          <Step title="确认信息" />
+        </Steps>
 
-          <Dragger
-            name="passport"
-            accept="image/jpeg,image/jpg,image/png"
-            multiple={false}
-            beforeUpload={handleManualPassportUpload}
-            showUploadList={false}
-            disabled={uploadingPassport}
-          >
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined />
-            </p>
-            <p className="ant-upload-text">点击或拖拽护照图片到此区域上传</p>
-            <p className="ant-upload-hint">
-              系统将自动识别护照信息，包括姓名、护照号码、国籍等
-            </p>
-          </Dragger>
-
-          {recognizedData && (
-            <Alert
-              message="识别成功"
-              description={
-                <div>
-                  <p>护照信息已成功识别并保存</p>
-                  <ul style={{ marginTop: 8, paddingLeft: 20 }}>
-                    <li>姓名：{recognizedData.fullName}</li>
-                    <li>护照号：{recognizedData.passportNumber}</li>
-                  </ul>
+        {/* 步骤1：上传护照 */}
+        {currentStep === 0 && (
+          <>
+            <Spin spinning={uploadingPassport} tip={progressText || "正在处理护照图片..."}>
+              {uploadingPassport && (
+                <div style={{ margin: '20px 0' }}>
+                  <Progress
+                    percent={Math.round(uploadProgress)}
+                    status="active"
+                    strokeColor={{
+                      '0%': '#108ee9',
+                      '100%': '#52c41a',
+                    }}
+                    format={percent => `${percent}%`}
+                  />
                 </div>
-              }
-              type="success"
-              showIcon
-              style={{ marginTop: 16 }}
-            />
-          )}
-        </Spin>
+              )}
+
+              <Dragger
+                name="passport"
+                accept="image/*"
+                multiple={false}
+                beforeUpload={handleManualPassportUpload}
+                showUploadList={false}
+                disabled={uploadingPassport}
+              >
+                {uploadingPassport ? (
+                  <div>
+                    <Spin size="large" />
+                    <p className="ant-upload-text">{progressText || '正在处理护照图片...'}</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="ant-upload-drag-icon">
+                      <InboxOutlined />
+                    </p>
+                    <p className="ant-upload-text">点击或拖拽护照照片到此区域</p>
+                    <p className="ant-upload-hint">
+                      支持 JPG/PNG 格式，自动识别护照信息
+                    </p>
+                  </>
+                )}
+              </Dragger>
+
+              <Alert
+                message="上传说明"
+                description={
+                  <div>
+                    <ol style={{ fontSize: '13px', paddingLeft: '20px', margin: 0 }}>
+                      <li style={{ marginBottom: '8px' }}>
+                        <strong>照片清晰完整：</strong>请确保上传的护照照片清晰可见，文字、号码和头像部分不得模糊。
+                      </li>
+                      <li style={{ marginBottom: '8px' }}>
+                        <strong>四角齐全：</strong>护照照片需完整显示四个边角，避免缺边缺角。
+                      </li>
+                      <li style={{ marginBottom: '8px' }}>
+                        <strong>无反光无阴影：</strong>拍摄或扫描时请避免灯光反射、水波纹或阴影影响，确保页面内容清晰。
+                      </li>
+                      <li style={{ marginBottom: '8px' }}>
+                        <strong>原件直拍：</strong>请上传护照原件的实拍照片或扫描件，不得上传翻拍屏幕或复印件照片。
+                      </li>
+                      <li style={{ marginBottom: 0 }}>
+                        <strong>正确方向：</strong>请保持护照页面正向上传，避免倒置或倾斜。
+                      </li>
+                    </ol>
+                  </div>
+                }
+                type="info"
+                showIcon
+                style={{ marginTop: 16 }}
+              />
+            </Spin>
+          </>
+        )}
+
+        {/* 步骤2：确认信息 */}
+        {currentStep === 1 && (
+          <Row gutter={24}>
+            <Col xs={24} md={10}>
+              <div style={{ marginBottom: 16 }}>
+                <h3>护照照片</h3>
+                {tempImageUrl && (
+                  <Image
+                    src={tempImageUrl}
+                    alt="护照照片"
+                    style={{ width: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                  />
+                )}
+              </div>
+            </Col>
+            <Col xs={24} md={14}>
+              <div>
+                <h3>
+                  <EditOutlined /> 请确认或修改护照信息
+                </h3>
+                <Form
+                  form={uploadForm}
+                  layout="vertical"
+                >
+                  <Form.Item
+                    name="fullName"
+                    label="姓名（英文）"
+                    rules={[
+                      { required: true, message: '请输入姓名' },
+                      {
+                        validator: (_, value) => {
+                          if (!value) return Promise.resolve();
+                          const validation = validatePassportName(value);
+                          if (validation.valid) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(new Error(validation.error));
+                        }
+                      }
+                    ]}
+                    tooltip={getNameFormatHint()}
+                    extra="格式：姓/名（纯英文），例如：ZHANG/SAN"
+                  >
+                    <Input
+                      placeholder="姓/名 (例: ZHANG/SAN)"
+                      onChange={(e) => {
+                        const value = e.target.value.toUpperCase();
+                        uploadForm.setFieldsValue({ fullName: value });
+                      }}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="passportNumber"
+                    label="护照号码"
+                    rules={[{ required: true, message: '请输入护照号码' }]}
+                  >
+                    <Input placeholder="请输入护照号码" style={{ textTransform: 'uppercase' }} />
+                  </Form.Item>
+
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="gender"
+                        label="性别"
+                        rules={[{ required: true, message: '请选择性别' }]}
+                      >
+                        <Select>
+                          <Option value="M">男</Option>
+                          <Option value="F">女</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="nationality"
+                        label="国籍"
+                        rules={[{ required: true, message: '请选择国籍' }]}
+                      >
+                        <Select
+                          placeholder="请选择国籍"
+                          showSearch
+                          optionFilterProp="label"
+                          filterOption={(input, option) =>
+                            option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                          }
+                        >
+                          {getAllCountries().map(country => (
+                            <Option key={country.value} value={country.value} label={country.label}>
+                              {country.label}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="birthDate"
+                        label="出生日期"
+                        rules={[{ required: true, message: '请输入出生日期' }]}
+                      >
+                        <Input placeholder="DD/MM/YYYY" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="issueDate"
+                        label="护照签发日期"
+                      >
+                        <Input placeholder="DD/MM/YYYY" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Form.Item
+                    name="expiryDate"
+                    label="护照有效期"
+                    rules={[{ required: true, message: '请输入护照有效期' }]}
+                  >
+                    <Input placeholder="DD/MM/YYYY" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="birthPlace"
+                    label="出生地"
+                    rules={[
+                      { required: true, message: '请输入出生地' },
+                      {
+                        pattern: /^[A-Za-z\s-]+$/,
+                        message: '出生地只能包含英文字母、空格和横线'
+                      }
+                    ]}
+                    extra="请使用英文格式，例如：BEIJING"
+                  >
+                    <Input
+                      placeholder="请输入出生地（英文）"
+                      style={{ textTransform: 'uppercase' }}
+                      onChange={(e) => {
+                        const value = e.target.value.toUpperCase();
+                        uploadForm.setFieldsValue({ birthPlace: value });
+                      }}
+                    />
+                  </Form.Item>
+
+                  <Form.Item>
+                    <Space size="middle">
+                      <Button
+                        type="primary"
+                        size="large"
+                        icon={<CheckCircleOutlined />}
+                        onClick={handleFinalSubmit}
+                        loading={confirming}
+                      >
+                        确认无误，提交信息
+                      </Button>
+                      <Button
+                        size="large"
+                        icon={<ReloadOutlined />}
+                        onClick={handleResetUpload}
+                      >
+                        重新上传
+                      </Button>
+                    </Space>
+                  </Form.Item>
+                </Form>
+              </div>
+            </Col>
+          </Row>
+        )}
       </Modal>
     </div>
   );

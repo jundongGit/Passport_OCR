@@ -469,3 +469,101 @@ exports.updatePassportPhoto = async (req, res) => {
     });
   }
 };
+
+// 护照照片上传预览（仅识别不保存）
+exports.updatePassportPreview = async (req, res) => {
+  try {
+    const touristId = req.params.id;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: '请上传护照图片'
+      });
+    }
+
+    const tourist = await Tourist.findByPk(touristId);
+    if (!tourist) {
+      await fs.unlink(req.file.path);
+      return res.status(404).json({
+        success: false,
+        error: '游客不存在'
+      });
+    }
+
+    console.log('检查图像质量...');
+    const qualityCheck = await imageQuality.checkImageQuality(req.file.path);
+
+    if (!qualityCheck.isValid) {
+      await fs.unlink(req.file.path);
+      return res.status(400).json({
+        success: false,
+        error: '图像质量不符合要求',
+        issues: qualityCheck.issues,
+        needsExample: qualityCheck.needsExample
+      });
+    }
+
+    console.log('识别护照信息...');
+    const logContext = {
+      uploadLink: tourist.uploadLink,
+      touristId: tourist.id,
+      operationType: 'preview',
+      operatorName: req.salesperson?.name || '管理员',
+      operatorId: req.salesperson?.id || null,
+      imageQuality: qualityCheck,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent')
+    };
+    const ocrResult = await passportOCR.recognizePassport(req.file.path, null, logContext);
+
+    // 预览模式：识别完成后立即删除临时文件
+    try {
+      await fs.unlink(req.file.path);
+    } catch (unlinkError) {
+      console.error('Failed to delete temporary file:', unlinkError);
+    }
+
+    if (!ocrResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: '护照识别失败，请上传更清晰的照片'
+      });
+    }
+
+    const passportData = ocrResult.data;
+
+    // 返回识别结果（不保存到数据库）
+    res.json({
+      success: true,
+      message: '护照识别成功',
+      data: {
+        recognizedName: passportData.fullName ? passportData.fullName.replace(/-/g, ' ') : null,
+        fullName: passportData.fullName ? passportData.fullName.replace(/-/g, ' ') : null,
+        passportNumber: passportData.passportNumber,
+        gender: passportData.gender,
+        nationality: passportData.nationality,
+        birthDate: passportData.birthDate,
+        birthPlace: passportData.birthPlace ? passportData.birthPlace.toUpperCase() : null,
+        issueDate: passportData.issueDate,
+        expiryDate: passportData.expiryDate
+      }
+    });
+  } catch (error) {
+    console.error('护照预览识别失败:', error);
+
+    // 清理上传的临时文件
+    if (req.file && req.file.path) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.error('Failed to delete file:', unlinkError);
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message || '护照识别失败，请重试'
+    });
+  }
+};
