@@ -4,6 +4,10 @@ WORKDIR /app
 
 # Install system dependencies for canvas and sharp
 RUN apk add --no-cache \
+    build-base \
+    g++ \
+    make \
+    python3 \
     cairo-dev \
     jpeg-dev \
     pango-dev \
