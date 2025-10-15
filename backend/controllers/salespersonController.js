@@ -23,13 +23,24 @@ exports.getAllSalespersons = async (req, res) => {
 // 创建销售人员（管理员）
 exports.createSalesperson = async (req, res) => {
   try {
-    const { name, email, password, phone, department } = req.body;
+    const { name, username, email, password, phone, department } = req.body;
 
     // 验证必填字段
-    if (!name || !email || !password) {
+    if (!name || !username || !email || !password) {
       return res.status(400).json({
         success: false,
-        error: '姓名、邮箱和密码为必填项'
+        error: '姓名、用户名、邮箱和密码为必填项'
+      });
+    }
+
+    // 检查用户名是否已存在
+    const existingUsername = await Salesperson.findOne({
+      where: { username }
+    });
+    if (existingUsername) {
+      return res.status(400).json({
+        success: false,
+        error: '该用户名已被使用'
       });
     }
 
@@ -47,6 +58,7 @@ exports.createSalesperson = async (req, res) => {
     // 创建新销售人员
     const salesperson = await Salesperson.create({
       name,
+      username,
       email,
       password,
       phone,

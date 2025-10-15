@@ -27,16 +27,16 @@ function LoginPage() {
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
-      const { email, password } = values;
-      
-      const result = await authService.login(email, password);
-      
+      const { username, password } = values;
+
+      const result = await authService.login(username, password);
+
       message.success('登录成功！');
-      
+
       // 根据角色跳转
-      const from = location.state?.from?.pathname || 
+      const from = location.state?.from?.pathname ||
         (result.user.role === 'admin' ? '/admin' : '/sales');
-      
+
       navigate(from, { replace: true });
     } catch (error) {
       message.error(error.message || '登录失败');
@@ -56,15 +56,15 @@ function LoginPage() {
           className="login-form"
         >
           <Form.Item
-            name="email"
+            name="username"
             rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' }
+              { required: true, message: '请输入用户名' },
+              { min: 3, message: '用户名至少3个字符' }
             ]}
           >
-            <Input 
-              prefix={<UserOutlined />} 
-              placeholder="邮箱地址" 
+            <Input
+              prefix={<UserOutlined />}
+              placeholder="用户名"
               autoComplete="username"
             />
           </Form.Item>

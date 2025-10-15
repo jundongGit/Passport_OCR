@@ -16,6 +16,18 @@ const Salesperson = sequelize.define('Salesperson', {
       notEmpty: true
     }
   },
+  username: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: {
+      notEmpty: true,
+      len: [3, 50]
+    },
+    set(value) {
+      this.setDataValue('username', value.toLowerCase().trim());
+    }
+  },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -76,11 +88,12 @@ Salesperson.prototype.comparePassword = async function(password) {
 
 Salesperson.prototype.generateAuthToken = function() {
   const token = jwt.sign(
-    { 
-      id: this.id, 
-      email: this.email, 
+    {
+      id: this.id,
+      username: this.username,
+      email: this.email,
       role: this.role,
-      name: this.name 
+      name: this.name
     },
     process.env.JWT_SECRET || 'your-secret-key',
     { expiresIn: '7d' }

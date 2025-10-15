@@ -4,34 +4,34 @@ const bcrypt = require('bcryptjs');
 // 销售人员登录
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    if (!email || !password) {
+    if (!username || !password) {
       return res.status(400).json({
         success: false,
-        error: '请提供邮箱和密码'
+        error: '请提供用户名和密码'
       });
     }
 
-    // 查找销售人员
-    const salesperson = await Salesperson.findOne({ 
-      where: { email, isActive: true } 
+    // 查找销售人员（使用用户名）
+    const salesperson = await Salesperson.findOne({
+      where: { username, isActive: true }
     });
-    
+
     if (!salesperson) {
       return res.status(401).json({
         success: false,
-        error: '邮箱或密码错误'
+        error: '用户名或密码错误'
       });
     }
 
     // 验证密码
     const isPasswordValid = await salesperson.comparePassword(password);
-    
+
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        error: '邮箱或密码错误'
+        error: '用户名或密码错误'
       });
     }
 
@@ -49,6 +49,7 @@ exports.login = async (req, res) => {
         user: {
           id: salesperson.id,
           name: salesperson.name,
+          username: salesperson.username,
           email: salesperson.email,
           role: salesperson.role,
           department: salesperson.department
@@ -169,6 +170,7 @@ exports.createAdmin = async (req, res) => {
     // 创建默认管理员
     const admin = await Salesperson.create({
       name: '系统管理员',
+      username: 'admin',
       email: 'admin@passport.com',
       password: 'admin123456',
       role: 'admin',
@@ -179,6 +181,7 @@ exports.createAdmin = async (req, res) => {
       success: true,
       message: '管理员账号创建成功',
       data: {
+        username: admin.username,
         email: admin.email,
         defaultPassword: 'admin123456'
       }

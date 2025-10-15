@@ -22,13 +22,14 @@ async function syncDatabase() {
     if (!adminExists) {
       await Salesperson.create({
         name: '系统管理员',
+        username: 'admin',
         email: 'admin@passport.com',
         password: 'admin123456',
         role: 'admin',
         department: '系统管理'
       });
       console.log('默认管理员账号创建成功');
-      console.log('账号: admin@passport.com');
+      console.log('用户名: admin');
       console.log('密码: admin123456');
     } else {
       console.log('管理员账号已存在');
