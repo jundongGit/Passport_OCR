@@ -43,3 +43,9 @@ coverage/
 # Misc
 .cache/
 .temp/
+
+# Docker volumes and SSL
+mysql_data/
+nginx/ssl/
+certbot-data/
+certbot-conf/
