@@ -299,8 +299,8 @@ function OCRLogs() {
                 <Card>
                   <Statistic
                     title="平均耗时"
-                    value={statistics.overall.avgDuration ? 
-                      statistics.overall.avgDuration.toFixed(0) : 0}
+                    value={statistics.overall.avgDuration ?
+                      Number(statistics.overall.avgDuration).toFixed(0) : 0}
                     suffix="ms"
                     loading={statsLoading}
                   />
