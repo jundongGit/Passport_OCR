@@ -268,7 +268,7 @@ function SalesTours() {
     setUploadModalVisible(true);
   };
 
-  const handlePassportUpload = async (file) => {
+  const handleManualPassportUpload = async (file) => {
     setUploadingPassport(true);
     const formData = new FormData();
     formData.append('passport', file);
@@ -1421,7 +1421,7 @@ function SalesTours() {
             name="passport"
             accept="image/jpeg,image/jpg,image/png"
             multiple={false}
-            beforeUpload={handlePassportUpload}
+            beforeUpload={handleManualPassportUpload}
             showUploadList={false}
             disabled={uploadingPassport}
           >
