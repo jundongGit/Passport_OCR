@@ -599,7 +599,7 @@ function TourManagement() {
       title: '游客姓名',
       dataIndex: 'touristName',
       key: 'touristName',
-      width: 150,
+      width: 120,
     },
     {
       title: 'EKOK',
@@ -610,9 +610,9 @@ function TourManagement() {
         // 检查是否与前一行的EKOK相同
         const prevRecord = index > 0 ? tourists[index - 1] : null;
         const isSameAsPrev = prevRecord && prevRecord.ekok === text;
-        
+
         return (
-          <span style={{ 
+          <span style={{
             fontWeight: !isSameAsPrev && text ? 'bold' : 'normal',
             color: text ? '#1890ff' : '#999'
           }}>
@@ -639,7 +639,7 @@ function TourManagement() {
       title: '销售姓名',
       dataIndex: 'salesName',
       key: 'salesName',
-      width: 120,
+      width: 100,
     },
     {
       title: '护照号码',
@@ -652,14 +652,14 @@ function TourManagement() {
       title: '护照姓名',
       dataIndex: 'passportName',
       key: 'passportName',
-      width: 180,
+      width: 150,
       render: (text) => text || '-',
     },
     {
       title: '性别',
       dataIndex: 'gender',
       key: 'gender',
-      width: 60,
+      width: 50,
       render: (gender) => {
         if (!gender) return '-';
         return gender === 'M' ? '男' : '女';
@@ -669,101 +669,15 @@ function TourManagement() {
       title: '国籍',
       dataIndex: 'nationality',
       key: 'nationality',
-      width: 80,
+      width: 60,
       render: (code) => code || '-',
     },
     {
       title: '出生地',
       dataIndex: 'birthPlace',
       key: 'birthPlace',
-      width: 120,
-      render: (text) => text || '-',
-    },
-    {
-      title: '联系电话',
-      dataIndex: 'contactPhone',
-      key: 'contactPhone',
-      width: 120,
-      render: (text) => text || '-',
-    },
-    {
-      title: '联系邮箱',
-      dataIndex: 'contactEmail',
-      key: 'contactEmail',
-      width: 150,
-      render: (text) => text || '-',
-    },
-    {
-      title: '房型',
-      dataIndex: 'roomType',
-      key: 'roomType',
-      width: 120,
-      render: (roomType, record) => (
-        <Select
-          value={roomType || ''}
-          style={{ width: '100%' }}
-          placeholder="选择房型"
-          onChange={(value) => handleUpdateRoomType(record.id, value)}
-          size="small"
-        >
-          <Option value="">未分配</Option>
-          <Option value="单人间">单人间</Option>
-          <Option value="双人间">双人间</Option>
-        </Select>
-      ),
-    },
-    {
-      title: '备注',
-      dataIndex: 'remarks',
-      key: 'remarks',
-      width: 150,
-      render: (text) => text || '-',
-    },
-    {
-      title: '出生日期',
-      dataIndex: 'passportBirthDate',
-      key: 'passportBirthDate',
       width: 100,
-      render: (date) => {
-        if (!date) return '-';
-        return moment(date).format('DD/MM/YYYY');
-      },
-    },
-    {
-      title: '签发日期',
-      dataIndex: 'passportIssueDate',
-      key: 'passportIssueDate',
-      width: 100,
-      render: (date) => {
-        if (!date) return '-';
-        return moment(date).format('DD/MM/YYYY');
-      },
-    },
-    {
-      title: '有效期',
-      dataIndex: 'passportExpiryDate',
-      key: 'passportExpiryDate',
-      width: 100,
-      render: (date) => {
-        if (!date) return '-';
-        return moment(date).format('DD/MM/YYYY');
-      },
-    },
-    {
-      title: '状态',
-      dataIndex: 'uploadStatus',
-      key: 'uploadStatus',
-      width: 80,
-      render: (status) => {
-        const statusMap = {
-          'pending': { text: '待上传', color: 'default' },
-          'uploaded': { text: '已上传', color: 'processing' },
-          'verified': { text: '已验证', color: 'success' },
-          'rejected': { text: '已拒绝', color: 'error' }
-        };
-        const config = statusMap[status] || { text: status, color: 'default' };
-        return <Tag color={config.color}>{config.text}</Tag>;
-      },
+      render: (text) => text || '-',
     },
     {
       title: '操作',
@@ -793,7 +707,7 @@ function TourManagement() {
               icon={<CopyOutlined />}
               onClick={() => copyUploadLink(record.uploadLink)}
             >
-              复制链接
+              发给客人
             </Button>
           )}
           {record.passportPhoto && (
@@ -948,10 +862,9 @@ function TourManagement() {
         ]}
       >
         <Table 
-          columns={touristColumns} 
+          columns={touristColumns}
           dataSource={tourists}
           rowKey="id"
-          scroll={{ x: 2000 }}
           pagination={false}
           rowClassName={(record, index) => {
             // 为相同EKOK的行添加不同的背景色
