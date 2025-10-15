@@ -268,23 +268,31 @@ function TourManagement() {
   // CSV导出功能
   const handleExportCSV = () => {
     const verifiedTourists = tourists.filter(tourist => tourist.uploadStatus === 'verified');
-    
+
     if (verifiedTourists.length === 0) {
       message.warning('暂无已验证的游客记录可导出');
       return;
     }
 
-    // CSV表头
+    // CSV表头 - 包含所有字段
     const csvHeaders = [
       '游客姓名',
-      '护照姓名', 
-      '护照号码',
-      '国籍',
-      '性别',
-      '出生日期',
-      '护照有效期',
-      '签发日期',
+      'EKOK',
+      '类型',
       '销售姓名',
+      '护照号码',
+      '护照姓名',
+      '性别',
+      '国籍',
+      '出生地',
+      '联系电话',
+      '联系邮箱',
+      '房型',
+      '备注',
+      '出生日期',
+      '签发日期',
+      '护照有效期',
+      '状态',
       '添加时间'
     ];
 
@@ -293,14 +301,22 @@ function TourManagement() {
       csvHeaders.join(','),
       ...verifiedTourists.map(tourist => [
         tourist.touristName || '',
-        tourist.passportName || '',
-        tourist.passportNumber || '',
-        tourist.nationality || '',
-        tourist.gender === 'M' ? '男' : (tourist.gender === 'F' ? '女' : ''),
-        tourist.passportBirthDate ? moment(tourist.passportBirthDate).format('YYYY-MM-DD') : '',
-        tourist.passportExpiryDate ? moment(tourist.passportExpiryDate).format('YYYY-MM-DD') : '',
-        tourist.passportIssueDate ? moment(tourist.passportIssueDate).format('YYYY-MM-DD') : '',
+        tourist.ekok || '',
+        tourist.touristType || '',
         tourist.salesName || '',
+        tourist.passportNumber || '',
+        tourist.passportName || '',
+        tourist.gender === 'M' ? '男' : (tourist.gender === 'F' ? '女' : ''),
+        tourist.nationality || '',
+        tourist.birthPlace || '',
+        tourist.contactPhone || '',
+        tourist.contactEmail || '',
+        tourist.roomType || '',
+        tourist.remarks || '',
+        tourist.passportBirthDate ? moment(tourist.passportBirthDate).format('YYYY-MM-DD') : '',
+        tourist.passportIssueDate ? moment(tourist.passportIssueDate).format('YYYY-MM-DD') : '',
+        tourist.passportExpiryDate ? moment(tourist.passportExpiryDate).format('YYYY-MM-DD') : '',
+        tourist.uploadStatus === 'verified' ? '已验证' : (tourist.uploadStatus === 'uploaded' ? '已上传' : (tourist.uploadStatus === 'pending' ? '待上传' : '已拒绝')),
         tourist.createdAt ? moment(tourist.createdAt).format('YYYY-MM-DD HH:mm') : ''
       ].map(field => `"${field}"`).join(','))
     ].join('\n');
@@ -315,7 +331,7 @@ function TourManagement() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     message.success(`已导出 ${verifiedTourists.length} 条已验证游客记录`);
   };
 
@@ -601,12 +617,14 @@ function TourManagement() {
       key: 'touristName',
       width: 100,
       fixed: 'left',
+      ellipsis: false,
     },
     {
       title: 'EKOK',
       dataIndex: 'ekok',
       key: 'ekok',
       width: 80,
+      ellipsis: false,
       render: (text, record, index) => {
         // 检查是否与前一行的EKOK相同
         const prevRecord = index > 0 ? tourists[index - 1] : null;
@@ -615,7 +633,8 @@ function TourManagement() {
         return (
           <span style={{
             fontWeight: !isSameAsPrev && text ? 'bold' : 'normal',
-            color: text ? '#1890ff' : '#999'
+            color: text ? '#1890ff' : '#999',
+            whiteSpace: 'nowrap'
           }}>
             {text || '-'}
           </span>
@@ -627,6 +646,7 @@ function TourManagement() {
       dataIndex: 'touristType',
       key: 'touristType',
       width: 60,
+      ellipsis: false,
       render: (type) => {
         if (type === 'ADT') {
           return <Tag color="blue">ADT</Tag>;
@@ -641,12 +661,14 @@ function TourManagement() {
       dataIndex: 'salesName',
       key: 'salesName',
       width: 80,
+      ellipsis: false,
     },
     {
       title: '护照号码',
       dataIndex: 'passportNumber',
       key: 'passportNumber',
       width: 100,
+      ellipsis: false,
       render: (text) => text || '-',
     },
     {
@@ -654,6 +676,7 @@ function TourManagement() {
       dataIndex: 'passportName',
       key: 'passportName',
       width: 130,
+      ellipsis: false,
       render: (text) => text || '-',
     },
     {
@@ -661,6 +684,7 @@ function TourManagement() {
       dataIndex: 'gender',
       key: 'gender',
       width: 45,
+      ellipsis: false,
       render: (gender) => {
         if (!gender) return '-';
         return gender === 'M' ? '男' : '女';
@@ -671,6 +695,7 @@ function TourManagement() {
       dataIndex: 'nationality',
       key: 'nationality',
       width: 50,
+      ellipsis: false,
       render: (code) => code || '-',
     },
     {
@@ -678,6 +703,7 @@ function TourManagement() {
       dataIndex: 'birthPlace',
       key: 'birthPlace',
       width: 80,
+      ellipsis: false,
       render: (text) => text || '-',
     },
     {
@@ -685,13 +711,15 @@ function TourManagement() {
       dataIndex: 'contactPhone',
       key: 'contactPhone',
       width: 110,
+      ellipsis: false,
       render: (text) => text || '-',
     },
     {
       title: '联系邮箱',
       dataIndex: 'contactEmail',
       key: 'contactEmail',
-      width: 150,
+      width: 200,
+      ellipsis: false,
       render: (text) => text || '-',
     },
     {
@@ -699,10 +727,11 @@ function TourManagement() {
       dataIndex: 'roomType',
       key: 'roomType',
       width: 100,
+      ellipsis: false,
       render: (roomType, record) => (
         <Select
           value={roomType || ''}
-          style={{ width: '100%' }}
+          style={{ width: '100%', minWidth: '80px' }}
           placeholder="选择房型"
           onChange={(value) => handleUpdateRoomType(record.id, value)}
           size="small"
@@ -718,7 +747,7 @@ function TourManagement() {
       dataIndex: 'remarks',
       key: 'remarks',
       width: 120,
-      ellipsis: true,
+      ellipsis: false,
       render: (text) => text || '-',
     },
     {
@@ -726,6 +755,7 @@ function TourManagement() {
       dataIndex: 'passportBirthDate',
       key: 'passportBirthDate',
       width: 95,
+      ellipsis: false,
       render: (date) => {
         if (!date) return '-';
         return moment(date).format('DD/MM/YYYY');
@@ -736,6 +766,7 @@ function TourManagement() {
       dataIndex: 'passportIssueDate',
       key: 'passportIssueDate',
       width: 95,
+      ellipsis: false,
       render: (date) => {
         if (!date) return '-';
         return moment(date).format('DD/MM/YYYY');
@@ -746,6 +777,7 @@ function TourManagement() {
       dataIndex: 'passportExpiryDate',
       key: 'passportExpiryDate',
       width: 95,
+      ellipsis: false,
       render: (date) => {
         if (!date) return '-';
         return moment(date).format('DD/MM/YYYY');
@@ -756,6 +788,7 @@ function TourManagement() {
       dataIndex: 'uploadStatus',
       key: 'uploadStatus',
       width: 75,
+      ellipsis: false,
       render: (status) => {
         const statusMap = {
           'pending': { text: '待上传', color: 'default' },
@@ -799,7 +832,7 @@ function TourManagement() {
             </Button>
           )}
           {record.passportPhoto && (
-            <Button 
+            <Button
               size="small"
               type="link"
               onClick={() => window.open(`${API_BASE.replace('/api', '')}${record.passportPhoto}`, '_blank')}
@@ -816,7 +849,7 @@ function TourManagement() {
             cancelText="取消"
             okType="danger"
           >
-            <Button 
+            <Button
               size="small"
               danger
               icon={<DeleteOutlined />}
@@ -949,11 +982,11 @@ function TourManagement() {
           </Button>
         ]}
       >
-        <Table 
+        <Table
           columns={touristColumns}
           dataSource={tourists}
           rowKey="id"
-          scroll={{ x: 1800 }}
+          scroll={{ x: 1850 }}
           pagination={false}
           rowClassName={(record, index) => {
             // 为相同EKOK的行添加不同的背景色

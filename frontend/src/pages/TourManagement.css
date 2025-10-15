@@ -32,3 +32,13 @@
 .same-ekok-row:hover td {
   background-color: #e6f7ff !important;
 }
+
+/* 防止表格单元格内容换行 */
+.ant-table-tbody > tr > td {
+  white-space: nowrap !important;
+}
+
+/* Select下拉框样式优化 */
+.ant-select-selector {
+  white-space: nowrap !important;
+}

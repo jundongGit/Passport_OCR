@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-SSH_KEY="/Users/jundong/Documents/FREEAI/Dev/Test.pem"
+SSH_KEY="/Users/jundong/Documents/FREEAI/Dev/Dev_WWH.pem"
 SSH_USER="ubuntu"
-SSH_HOST="16.176.4.114"
+SSH_HOST="3.27.214.148"
 REMOTE_ROOT="/home/ubuntu/apps/Passport_OCR"
 
 # 1) 同步（根目录，但排除会产生数据的目录）
