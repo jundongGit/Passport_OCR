@@ -34,7 +34,7 @@ class PassportOCR {
       const systemPrompt = this.getSystemPrompt(passportType);
       
       // 更新日志状态为处理中
-      await this.updateOCRLog(logEntry._id, { ocrStatus: 'processing' });
+      await this.updateOCRLog(logEntry.id, { ocrStatus: 'processing' });
       
       const response = await this.openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -72,12 +72,12 @@ class PassportOCR {
         const duration = Date.now() - startTime;
         
         // 更新日志记录为成功
-        await this.updateOCRLog(logEntry._id, {
+        await this.updateOCRLog(logEntry.id, {
           ocrStatus: 'success',
           ocrDuration: duration,
           recognizedData: normalizedData
         });
-        
+
         // 文件日志：记录识别成功
         fileLogger.logOCRSuccess(
           logContext.uploadLink || 'unknown',
@@ -85,13 +85,13 @@ class PassportOCR {
           duration,
           logContext.operatorName || '游客'
         );
-        
+
         console.log(`[OCR成功] 识别耗时: ${duration}ms, 上传链接: ${logContext.uploadLink || 'unknown'}`);
-        
+
         return {
           success: true,
           data: normalizedData,
-          logId: logEntry._id
+          logId: logEntry.id
         };
       } else {
         throw new Error('无法解析护照信息');
@@ -102,13 +102,13 @@ class PassportOCR {
       
       // 更新日志记录为失败
       if (logEntry) {
-        await this.updateOCRLog(logEntry._id, {
+        await this.updateOCRLog(logEntry.id, {
           ocrStatus: 'failed',
           ocrDuration: duration,
           ocrError: error.message
         });
       }
-      
+
       // 文件日志：记录识别失败
       fileLogger.logOCRError(
         logContext.uploadLink || 'unknown',
@@ -116,13 +116,13 @@ class PassportOCR {
         duration,
         logContext.operatorName || '游客'
       );
-      
+
       console.log(`[OCR失败] 识别耗时: ${duration}ms, 错误: ${error.message}, 上传链接: ${logContext.uploadLink || 'unknown'}`);
-      
+
       return {
         success: false,
         error: error.message,
-        logId: logEntry?._id
+        logId: logEntry?.id
       };
     }
   }
@@ -272,7 +272,7 @@ class PassportOCR {
   async createOCRLog(imagePath, logContext = {}) {
     try {
       const stats = await fs.stat(imagePath);
-      
+
       const logData = {
         uploadLink: logContext.uploadLink || 'unknown',
         touristId: logContext.touristId || null,
@@ -287,9 +287,10 @@ class PassportOCR {
         ipAddress: logContext.ipAddress || null,
         userAgent: logContext.userAgent || null
       };
-      
-      const logEntry = new OCRLog(logData);
-      return await logEntry.save();
+
+      // Sequelize: Use create() instead of new + save()
+      const logEntry = await OCRLog.create(logData);
+      return logEntry;
     } catch (error) {
       console.error('创建OCR日志失败:', error);
       return null;
@@ -299,7 +300,10 @@ class PassportOCR {
   async updateOCRLog(logId, updateData) {
     try {
       if (!logId) return;
-      await OCRLog.findByIdAndUpdate(logId, updateData);
+      // Sequelize: Use update() with where clause instead of findByIdAndUpdate()
+      await OCRLog.update(updateData, {
+        where: { id: logId }
+      });
     } catch (error) {
       console.error('更新OCR日志失败:', error);
     }
@@ -308,13 +312,15 @@ class PassportOCR {
   async logConfirmation(logId, confirmedData, uploadLink = 'unknown', operatorName = '游客') {
     try {
       if (!logId) return;
-      await OCRLog.findByIdAndUpdate(logId, {
-        confirmedData: confirmedData
-      });
-      
+      // Sequelize: Use update() with where clause instead of findByIdAndUpdate()
+      await OCRLog.update(
+        { confirmedData: confirmedData },
+        { where: { id: logId } }
+      );
+
       // 文件日志：记录用户确认
       fileLogger.logOCRConfirmation(uploadLink, confirmedData, operatorName);
-      
+
       console.log(`[用户确认] 日志ID: ${logId}, 用户确认了识别数据`);
     } catch (error) {
       console.error('记录用户确认失败:', error);
