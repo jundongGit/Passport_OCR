@@ -31,10 +31,18 @@ function TourManagement() {
   const [remarksForm] = Form.useForm();
 
   useEffect(() => {
-    fetchTours();
+    // 只有在已登录时才获取数据
+    if (authService.isAuthenticated()) {
+      fetchTours();
+    }
   }, []);
 
   const fetchTours = async () => {
+    // 再次检查认证状态
+    if (!authService.isAuthenticated()) {
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await axios.get(`${API_BASE}/tours`, {
@@ -42,6 +50,10 @@ function TourManagement() {
       });
       setTours(response.data.data);
     } catch (error) {
+      if (error.response?.status === 401) {
+        // 401错误不显示消息，让路由保护处理
+        return;
+      }
       message.error('获取旅游产品列表失败');
     } finally {
       setLoading(false);
@@ -78,7 +90,7 @@ function TourManagement() {
 
   const handleUpdateTour = async (values) => {
     try {
-      await axios.put(`${API_BASE}/tours/${selectedTour._id}`, {
+      await axios.put(`${API_BASE}/tours/${selectedTour.id}`, {
         productName: values.productName,
         departureDate: values.departureDate.format('YYYY-MM-DD')
       }, {
@@ -116,7 +128,7 @@ function TourManagement() {
     
     try {
       const response = await axios.post(`${API_BASE}/tourists`, {
-        tourId: selectedTour._id,
+        tourId: selectedTour.id,
         touristName: nameValidation.formatted,
         salesName: values.salesName,
         ekok: values.ekok || null
@@ -170,7 +182,7 @@ function TourManagement() {
       
       touristForm.resetFields();
       setTouristModalVisible(false);
-      fetchTourists(selectedTour._id);
+      fetchTourists(selectedTour.id);
     } catch (error) {
       message.error('添加游客失败');
     }
@@ -178,7 +190,7 @@ function TourManagement() {
 
   const openTouristModal = (tour) => {
     setSelectedTour(tour);
-    fetchTourists(tour._id);
+    fetchTourists(tour.id);
     setTouristModalVisible(true);
   };
 
@@ -210,7 +222,7 @@ function TourManagement() {
       });
       message.success('游客删除成功');
       // 重新获取游客列表
-      fetchTourists(selectedTour._id);
+      fetchTourists(selectedTour.id);
     } catch (error) {
       message.error('删除失败');
     }
@@ -229,8 +241,8 @@ function TourManagement() {
       message.loading('正在打包护照照片...', 2);
       
       const response = await axios.post(`${API_BASE}/export/passport-photos`, {
-        tourId: selectedTour._id,
-        touristIds: touristsWithPhotos.map(t => t._id)
+        tourId: selectedTour.id,
+        touristIds: touristsWithPhotos.map(t => t.id)
       }, {
         headers: authService.getAuthHeaders(),
         responseType: 'blob'
@@ -335,7 +347,7 @@ function TourManagement() {
 
   const handleUpdateRemarks = async (values) => {
     try {
-      await axios.put(`${API_BASE}/tourists/${editingRemarks._id}`, {
+      await axios.put(`${API_BASE}/tourists/${editingRemarks.id}`, {
         remarks: values.remarks
       }, {
         headers: authService.getAuthHeaders()
@@ -347,7 +359,7 @@ function TourManagement() {
       remarksForm.resetFields();
       
       // 刷新游客列表
-      fetchTourists(selectedTour._id);
+      fetchTourists(selectedTour.id);
     } catch (error) {
       message.error(error.response?.data?.error || '备注更新失败');
     }
@@ -362,7 +374,7 @@ function TourManagement() {
         headers: authService.getAuthHeaders()
       });
       message.success('房型更新成功');
-      fetchTourists(selectedTour._id);
+      fetchTourists(selectedTour.id);
     } catch (error) {
       message.error('房型更新失败');
     }
@@ -387,7 +399,7 @@ function TourManagement() {
     }
 
     try {
-      await axios.put(`${API_BASE}/tourists/${editingTourist._id}`, {
+      await axios.put(`${API_BASE}/tourists/${editingTourist.id}`, {
         touristName: nameValidation.formatted,
         passportName: values.passportName,
         passportNumber: values.passportNumber,
@@ -397,7 +409,7 @@ function TourManagement() {
         passportExpiryDate: values.passportExpiryDate,
         passportIssueDate: values.passportIssueDate,
         remarks: values.remarks,
-        tourId: selectedTour._id
+        tourId: selectedTour.id
       }, {
         headers: authService.getAuthHeaders()
       });
@@ -405,7 +417,7 @@ function TourManagement() {
       message.success('游客信息更新成功');
       setEditingTourist(null);
       editForm.resetFields();
-      fetchTourists(selectedTour._id);
+      fetchTourists(selectedTour.id);
     } catch (error) {
       message.error(error.response?.data?.error || '更新失败');
     }
@@ -438,11 +450,11 @@ function TourManagement() {
     
     const formData = new FormData();
     formData.append('passport', file);
-    formData.append('touristId', editingTourist._id);
+    formData.append('touristId', editingTourist.id);
 
     try {
       const response = await axios.post(
-        `${API_BASE}/tourists/${editingTourist._id}/update-passport`,
+        `${API_BASE}/tourists/${editingTourist.id}/update-passport`,
         formData,
         {
           headers: {
@@ -569,7 +581,7 @@ function TourManagement() {
           </Button>
           <Popconfirm
             title="确定要删除这个旅游产品吗？"
-            onConfirm={() => handleDeleteTour(record._id)}
+            onConfirm={() => handleDeleteTour(record.id)}
             okText="确定"
             cancelText="取消"
           >
@@ -691,7 +703,7 @@ function TourManagement() {
           value={roomType || ''}
           style={{ width: '100%' }}
           placeholder="选择房型"
-          onChange={(value) => handleUpdateRoomType(record._id, value)}
+          onChange={(value) => handleUpdateRoomType(record.id, value)}
           size="small"
         >
           <Option value="">未分配</Option>
@@ -797,7 +809,7 @@ function TourManagement() {
             title="确定要删除这个游客吗？"
             description="删除后将无法恢复"
             icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
-            onConfirm={() => handleDeleteTourist(record._id)}
+            onConfirm={() => handleDeleteTourist(record.id)}
             okText="确定"
             cancelText="取消"
             okType="danger"
@@ -834,7 +846,7 @@ function TourManagement() {
         <Table 
           columns={tourColumns} 
           dataSource={tours}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
         />
       </Card>
@@ -938,7 +950,7 @@ function TourManagement() {
         <Table 
           columns={touristColumns} 
           dataSource={tourists}
-          rowKey="_id"
+          rowKey="id"
           scroll={{ x: 2000 }}
           pagination={false}
           rowClassName={(record, index) => {

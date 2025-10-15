@@ -1,5 +1,5 @@
-const EmailVerification = require('../models/EmailVerification');
-const Tourist = require('../models/Tourist');
+const { EmailVerification, Tourist } = require('../models');
+const { Op } = require('sequelize');
 const emailService = require('../utils/emailService');
 
 // 发送验证码
@@ -24,7 +24,7 @@ exports.sendVerificationCode = async (req, res) => {
     }
 
     // 验证上传链接是否有效
-    const tourist = await Tourist.findOne({ uploadLink });
+    const tourist = await Tourist.findOne({ where: { uploadLink } });
     if (!tourist) {
       return res.status(404).json({
         success: false,
@@ -34,9 +34,11 @@ exports.sendVerificationCode = async (req, res) => {
 
     // 检查频率限制（同一邮箱1分钟内只能发送一次）
     const recentVerification = await EmailVerification.findOne({
-      email,
-      uploadLink,
-      createdAt: { $gt: new Date(Date.now() - 60 * 1000) }
+      where: {
+        email,
+        uploadLink,
+        createdAt: { [Op.gt]: new Date(Date.now() - 60 * 1000) }
+      }
     });
 
     if (recentVerification) {

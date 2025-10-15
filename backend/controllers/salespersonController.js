@@ -3,10 +3,11 @@ const Salesperson = require('../models/Salesperson');
 // 获取所有销售人员（管理员）
 exports.getAllSalespersons = async (req, res) => {
   try {
-    const salespersons = await Salesperson.find()
-      .select('-password')
-      .sort({ createdAt: -1 });
-    
+    const salespersons = await Salesperson.findAll({
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']]
+    });
+
     res.json({
       success: true,
       data: salespersons
@@ -33,7 +34,9 @@ exports.createSalesperson = async (req, res) => {
     }
 
     // 检查邮箱是否已存在
-    const existingSalesperson = await Salesperson.findOne({ email });
+    const existingSalesperson = await Salesperson.findOne({
+      where: { email }
+    });
     if (existingSalesperson) {
       return res.status(400).json({
         success: false,
@@ -42,7 +45,7 @@ exports.createSalesperson = async (req, res) => {
     }
 
     // 创建新销售人员
-    const salesperson = new Salesperson({
+    const salesperson = await Salesperson.create({
       name,
       email,
       password,
@@ -51,12 +54,10 @@ exports.createSalesperson = async (req, res) => {
       role: 'salesperson'
     });
 
-    await salesperson.save();
-
     res.status(201).json({
       success: true,
       message: '销售人员创建成功',
-      data: salesperson
+      data: salesperson.toJSON()
     });
   } catch (error) {
     res.status(500).json({
@@ -72,8 +73,8 @@ exports.updateSalesperson = async (req, res) => {
     const { id } = req.params;
     const { name, email, phone, department, isActive } = req.body;
 
-    const salesperson = await Salesperson.findById(id);
-    
+    const salesperson = await Salesperson.findByPk(id);
+
     if (!salesperson) {
       return res.status(404).json({
         success: false,
@@ -83,7 +84,9 @@ exports.updateSalesperson = async (req, res) => {
 
     // 如果要更改邮箱，检查新邮箱是否已存在
     if (email && email !== salesperson.email) {
-      const existingSalesperson = await Salesperson.findOne({ email });
+      const existingSalesperson = await Salesperson.findOne({
+        where: { email }
+      });
       if (existingSalesperson) {
         return res.status(400).json({
           success: false,
@@ -104,7 +107,7 @@ exports.updateSalesperson = async (req, res) => {
     res.json({
       success: true,
       message: '更新成功',
-      data: salesperson
+      data: salesperson.toJSON()
     });
   } catch (error) {
     res.status(500).json({
@@ -127,8 +130,8 @@ exports.resetSalespersonPassword = async (req, res) => {
       });
     }
 
-    const salesperson = await Salesperson.findById(id);
-    
+    const salesperson = await Salesperson.findByPk(id);
+
     if (!salesperson) {
       return res.status(404).json({
         success: false,
@@ -156,8 +159,8 @@ exports.deleteSalesperson = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const salesperson = await Salesperson.findById(id);
-    
+    const salesperson = await Salesperson.findByPk(id);
+
     if (!salesperson) {
       return res.status(404).json({
         success: false,
@@ -173,7 +176,7 @@ exports.deleteSalesperson = async (req, res) => {
       });
     }
 
-    await Salesperson.findByIdAndDelete(id);
+    await salesperson.destroy();
 
     res.json({
       success: true,
@@ -192,8 +195,8 @@ exports.getSalespersonStats = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const salesperson = await Salesperson.findById(id);
-    
+    const salesperson = await Salesperson.findByPk(id);
+
     if (!salesperson) {
       return res.status(404).json({
         success: false,
@@ -202,13 +205,15 @@ exports.getSalespersonStats = async (req, res) => {
     }
 
     // 获取该销售人员添加的游客数量
-    const Tourist = require('../models/Tourist');
-    const touristCount = await Tourist.countDocuments({ salesName: salesperson.name });
+    const { Tourist } = require('../models');
+    const touristCount = await Tourist.count({
+      where: { salespersonId: salesperson.id }
+    });
 
     res.json({
       success: true,
       data: {
-        salesperson,
+        salesperson: salesperson.toJSON(),
         stats: {
           touristCount
         }

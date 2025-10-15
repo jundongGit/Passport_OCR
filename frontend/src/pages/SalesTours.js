@@ -66,7 +66,7 @@ function SalesTours() {
       // 筛选当前销售人员在该产品下的游客
       const myTourists = response.data.data.filter(tourist => 
         tourist.salesName === userInfo?.name && 
-        (tourist.tourId === tour._id || tourist.tourId?._id === tour._id)
+        (tourist.tourId === tour.id || tourist.tourId?.id === tour.id)
       );
       
       setSelectedTourTourists(myTourists);
@@ -88,10 +88,10 @@ function SalesTours() {
 
     try {
       const response = await axios.post(`${API_BASE}/tourists`, {
-        tourId: selectedTourInfo._id,
+        tourId: selectedTourInfo.id,
         touristName: nameValidation.formatted,
         salesName: userInfo.name,
-        salespersonId: userInfo._id,
+        salespersonId: userInfo.id,
         ekok: values.ekok || null
       }, {
         headers: authService.getAuthHeaders()
@@ -184,7 +184,7 @@ function SalesTours() {
 
   const handleUpdateRemarks = async (values) => {
     try {
-      await axios.put(`${API_BASE}/tourists/${editingRemarks._id}`, {
+      await axios.put(`${API_BASE}/tourists/${editingRemarks.id}`, {
         remarks: values.remarks
       }, {
         headers: authService.getAuthHeaders()
@@ -220,7 +220,7 @@ function SalesTours() {
     }
 
     try {
-      await axios.put(`${API_BASE}/tourists/${editingTourist._id}`, {
+      await axios.put(`${API_BASE}/tourists/${editingTourist.id}`, {
         touristName: nameValidation.formatted,
         passportName: values.passportName,
         passportNumber: values.passportNumber,
@@ -229,7 +229,7 @@ function SalesTours() {
         passportBirthDate: values.passportBirthDate,
         passportExpiryDate: values.passportExpiryDate,
         passportIssueDate: values.passportIssueDate,
-        tourId: selectedTourInfo._id
+        tourId: selectedTourInfo.id
       }, {
         headers: authService.getAuthHeaders()
       });
@@ -299,8 +299,8 @@ function SalesTours() {
       message.loading('正在打包护照照片...', 2);
       
       const response = await axios.post(`${API_BASE}/export/passport-photos`, {
-        tourId: selectedTourInfo._id,
-        touristIds: touristsWithPhotos.map(t => t._id)
+        tourId: selectedTourInfo.id,
+        touristIds: touristsWithPhotos.map(t => t.id)
       }, {
         headers: authService.getAuthHeaders(),
         responseType: 'blob'
@@ -423,11 +423,11 @@ function SalesTours() {
     
     const formData = new FormData();
     formData.append('passport', file);
-    formData.append('touristId', editingTourist._id);
+    formData.append('touristId', editingTourist.id);
 
     try {
       const response = await axios.post(
-        `${API_BASE}/tourists/${editingTourist._id}/update-passport`,
+        `${API_BASE}/tourists/${editingTourist.id}/update-passport`,
         formData,
         {
           headers: {
@@ -620,7 +620,7 @@ function SalesTours() {
         <Table 
           columns={columns} 
           dataSource={filteredTours}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
           scroll={{ x: 800 }}
           pagination={{
@@ -865,7 +865,7 @@ function SalesTours() {
                     title="确定删除这个游客吗？"
                     description="删除后将无法恢复"
                     icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
-                    onConfirm={() => handleDeleteTourist(record._id)}
+                    onConfirm={() => handleDeleteTourist(record.id)}
                     okText="确定"
                     cancelText="取消"
                   >
@@ -878,7 +878,7 @@ function SalesTours() {
             },
           ]}
           dataSource={selectedTourTourists}
-          rowKey="_id"
+          rowKey="id"
           loading={touristsLoading}
           scroll={{ x: 1800 }}
           pagination={false}

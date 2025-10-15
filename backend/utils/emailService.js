@@ -8,7 +8,7 @@ class EmailService {
       secure: false, // TLS
       auth: {
         user: 'verify@wanguo.co.nz',
-        pass: '$cUvX2d#'
+        pass: '@$N#5HUCRu5VYr!'
       },
       tls: {
         rejectUnauthorized: false

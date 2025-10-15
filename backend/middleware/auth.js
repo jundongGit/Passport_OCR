@@ -5,13 +5,18 @@ const Salesperson = require('../models/Salesperson');
 const auth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       throw new Error();
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const salesperson = await Salesperson.findOne({ _id: decoded._id, isActive: true });
+    const salesperson = await Salesperson.findOne({
+      where: {
+        id: decoded.id,
+        isActive: true
+      }
+    });
 
     if (!salesperson) {
       throw new Error();
@@ -19,7 +24,7 @@ const auth = async (req, res, next) => {
 
     req.token = token;
     req.salesperson = salesperson;
-    req.salespersonId = salesperson._id;
+    req.salespersonId = salesperson.id;
     next();
   } catch (error) {
     res.status(401).json({ success: false, error: '请先登录' });
@@ -30,13 +35,18 @@ const auth = async (req, res, next) => {
 const adminAuth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       throw new Error();
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const salesperson = await Salesperson.findOne({ _id: decoded._id, isActive: true });
+    const salesperson = await Salesperson.findOne({
+      where: {
+        id: decoded.id,
+        isActive: true
+      }
+    });
 
     if (!salesperson || salesperson.role !== 'admin') {
       throw new Error();
@@ -44,7 +54,7 @@ const adminAuth = async (req, res, next) => {
 
     req.token = token;
     req.salesperson = salesperson;
-    req.salespersonId = salesperson._id;
+    req.salespersonId = salesperson.id;
     next();
   } catch (error) {
     res.status(403).json({ success: false, error: '需要管理员权限' });
@@ -55,15 +65,20 @@ const adminAuth = async (req, res, next) => {
 const optionalAuth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-      const salesperson = await Salesperson.findOne({ _id: decoded._id, isActive: true });
-      
+      const salesperson = await Salesperson.findOne({
+        where: {
+          id: decoded.id,
+          isActive: true
+        }
+      });
+
       if (salesperson) {
         req.token = token;
         req.salesperson = salesperson;
-        req.salespersonId = salesperson._id;
+        req.salespersonId = salesperson.id;
       }
     }
     next();

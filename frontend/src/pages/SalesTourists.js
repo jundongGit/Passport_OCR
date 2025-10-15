@@ -80,7 +80,7 @@ function SalesTourists() {
         tourId: values.tourId,
         touristName: nameValidation.formatted,
         salesName: userInfo.name,
-        salespersonId: userInfo._id
+        salespersonId: userInfo.id
       }, {
         headers: authService.getAuthHeaders()
       });
@@ -160,7 +160,7 @@ function SalesTourists() {
   const handleEditTourist = (tourist) => {
     setEditingTourist(tourist);
     // tourId 可能是对象或字符串，需要正确处理
-    const tourIdValue = typeof tourist.tourId === 'object' ? tourist.tourId._id : tourist.tourId;
+    const tourIdValue = typeof tourist.tourId === 'object' ? tourist.tourId.id : tourist.tourId;
     editForm.setFieldsValue({
       touristName: tourist.touristName,
       tourId: tourIdValue
@@ -177,7 +177,7 @@ function SalesTourists() {
     }
 
     try {
-      await axios.put(`${API_BASE}/tourists/${editingTourist._id}`, {
+      await axios.put(`${API_BASE}/tourists/${editingTourist.id}`, {
         touristName: nameValidation.formatted,
         tourId: values.tourId
       }, {
@@ -450,7 +450,7 @@ function SalesTourists() {
         <Table 
           columns={columns} 
           dataSource={filteredTourists}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
           scroll={{ x: 1200 }}
           pagination={{
@@ -485,7 +485,7 @@ function SalesTourists() {
           >
             <Select placeholder="请选择旅游产品" showSearch>
               {tours.map(tour => (
-                <Option key={tour._id} value={tour._id}>
+                <Option key={tour.id} value={tour.id}>
                   {tour.productName} - {moment(tour.departureDate).format('YYYY-MM-DD')}
                 </Option>
               ))}
@@ -561,7 +561,7 @@ function SalesTourists() {
           >
             <Select placeholder="请选择旅游产品" showSearch>
               {tours.map(tour => (
-                <Option key={tour._id} value={tour._id}>
+                <Option key={tour.id} value={tour.id}>
                   {tour.productName} - {moment(tour.departureDate).format('YYYY-MM-DD')}
                 </Option>
               ))}

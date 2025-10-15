@@ -15,7 +15,12 @@
       "Bash(./start.sh:*)",
       "Bash(brew install:*)",
       "Bash(brew services start:*)",
-      "Bash(mysql:*)"
+      "Bash(mysql:*)",
+      "Bash(chmod:*)",
+      "Bash(tree:*)",
+      "Bash(brew services:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhZG1pbkBwYXNzcG9ydC5jb20iLCJyb2xlIjoiYWRtaW4iLCJuYW1lIjoi57O757uf566h55CG5ZGYIiwiaWF0IjoxNzYwNDk0MzAwLCJleHAiOjE3NjEwOTkxMDB9.xBl2Z1C8u3zk4zAGeE6zinQr2UB_OSZHlZ01lU_6bJ8\")",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

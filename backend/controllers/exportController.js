@@ -1,5 +1,5 @@
-const Tourist = require('../models/Tourist');
-const Tour = require('../models/Tour');
+const { Tourist, Tour } = require('../models');
+const { Op } = require('sequelize');
 const archiver = require('archiver');
 const fs = require('fs');
 const path = require('path');
@@ -7,7 +7,7 @@ const path = require('path');
 exports.exportPassportPhotos = async (req, res) => {
   try {
     const { tourId, touristIds } = req.body;
-    
+
     // 验证输入
     if (!tourId || !touristIds || !Array.isArray(touristIds) || touristIds.length === 0) {
       return res.status(400).json({
@@ -17,7 +17,7 @@ exports.exportPassportPhotos = async (req, res) => {
     }
 
     // 获取旅游产品信息
-    const tour = await Tour.findById(tourId);
+    const tour = await Tour.findByPk(tourId);
     if (!tour) {
       return res.status(404).json({
         success: false,
@@ -26,10 +26,12 @@ exports.exportPassportPhotos = async (req, res) => {
     }
 
     // 获取指定游客的护照照片
-    const tourists = await Tourist.find({
-      _id: { $in: touristIds },
-      tourId: tourId,
-      passportPhoto: { $exists: true, $ne: null }
+    const tourists = await Tourist.findAll({
+      where: {
+        id: { [Op.in]: touristIds },
+        tourId: tourId,
+        passportPhoto: { [Op.ne]: null }
+      }
     });
 
     if (tourists.length === 0) {

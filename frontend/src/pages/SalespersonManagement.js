@@ -18,10 +18,18 @@ function SalespersonManagement() {
   const [passwordForm] = Form.useForm();
 
   useEffect(() => {
-    fetchSalespersons();
+    // 只有在已登录时才获取数据
+    if (authService.isAuthenticated()) {
+      fetchSalespersons();
+    }
   }, []);
 
   const fetchSalespersons = async () => {
+    // 再次检查认证状态
+    if (!authService.isAuthenticated()) {
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await axios.get(`${API_BASE}/salespersons`, {
@@ -29,6 +37,10 @@ function SalespersonManagement() {
       });
       setSalespersons(response.data.data);
     } catch (error) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        // 401/403错误不显示消息，让路由保护处理
+        return;
+      }
       message.error('获取销售人员列表失败');
     } finally {
       setLoading(false);
@@ -51,7 +63,7 @@ function SalespersonManagement() {
 
   const handleUpdateSalesperson = async (values) => {
     try {
-      await axios.put(`${API_BASE}/salespersons/${selectedSalesperson._id}`, values, {
+      await axios.put(`${API_BASE}/salespersons/${selectedSalesperson.id}`, values, {
         headers: authService.getAuthHeaders()
       });
       message.success('更新成功');
@@ -67,7 +79,7 @@ function SalespersonManagement() {
   const handleResetPassword = async (values) => {
     try {
       await axios.post(
-        `${API_BASE}/salespersons/${selectedSalesperson._id}/reset-password`, 
+        `${API_BASE}/salespersons/${selectedSalesperson.id}/reset-password`, 
         { newPassword: values.newPassword },
         { headers: authService.getAuthHeaders() }
       );
@@ -95,7 +107,7 @@ function SalespersonManagement() {
   const handleStatusChange = async (salesperson, checked) => {
     try {
       await axios.put(
-        `${API_BASE}/salespersons/${salesperson._id}`, 
+        `${API_BASE}/salespersons/${salesperson.id}`, 
         { isActive: checked },
         { headers: authService.getAuthHeaders() }
       );
@@ -211,7 +223,7 @@ function SalespersonManagement() {
           {record.role !== 'admin' && (
             <Popconfirm
               title="确定要删除这个销售人员吗？"
-              onConfirm={() => handleDeleteSalesperson(record._id)}
+              onConfirm={() => handleDeleteSalesperson(record.id)}
               okText="确定"
               cancelText="取消"
             >
@@ -244,7 +256,7 @@ function SalespersonManagement() {
         <Table 
           columns={columns} 
           dataSource={salespersons}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
           scroll={{ x: 1200 }}
         />

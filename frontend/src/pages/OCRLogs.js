@@ -242,14 +242,14 @@ function OCRLogs() {
           <Button
             size="small"
             icon={<EyeOutlined />}
-            onClick={() => handleViewDetail(record._id)}
+            onClick={() => handleViewDetail(record.id)}
           >
             详情
           </Button>
           <Popconfirm
             title="确定删除这条日志吗？"
             icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
-            onConfirm={() => handleDeleteLog(record._id)}
+            onConfirm={() => handleDeleteLog(record.id)}
             okText="确定"
             cancelText="取消"
           >
@@ -392,7 +392,7 @@ function OCRLogs() {
         <Table
           columns={columns}
           dataSource={logs}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
           rowSelection={rowSelection}
           scroll={{ x: 1200 }}

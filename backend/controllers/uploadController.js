@@ -1,5 +1,4 @@
-const Tourist = require('../models/Tourist');
-const EmailVerification = require('../models/EmailVerification');
+const { Tourist, Tour, EmailVerification } = require('../models');
 const imageQuality = require('../utils/imageQuality');
 const passportOCR = require('../utils/passportOCR');
 const { getCountryCode } = require('../utils/countryCode');
@@ -10,7 +9,7 @@ const path = require('path');
 exports.previewPassport = async (req, res) => {
   try {
     const { uploadLink } = req.params;
-    
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -18,7 +17,7 @@ exports.previewPassport = async (req, res) => {
       });
     }
 
-    const tourist = await Tourist.findOne({ uploadLink });
+    const tourist = await Tourist.findOne({ where: { uploadLink } });
     if (!tourist) {
       await fs.unlink(req.file.path);
       return res.status(404).json({
@@ -125,7 +124,7 @@ exports.uploadPassport = async (req, res) => {
       });
     }
 
-    const tourist = await Tourist.findOne({ uploadLink });
+    const tourist = await Tourist.findOne({ where: { uploadLink } });
     if (!tourist) {
       await fs.unlink(req.file.path);
       return res.status(404).json({
@@ -325,18 +324,24 @@ exports.checkImageQuality = async (req, res) => {
 exports.getUploadStatus = async (req, res) => {
   try {
     const { uploadLink } = req.params;
-    
-    const tourist = await Tourist.findOne({ uploadLink })
-      .select('uploadStatus rejectionReason passportPhoto recognizedData')
-      .populate('tourId', 'productName departureDate');
-    
+
+    const tourist = await Tourist.findOne({
+      where: { uploadLink },
+      attributes: ['uploadStatus', 'rejectionReason', 'passportPhoto', 'recognizedData'],
+      include: [{
+        model: Tour,
+        as: 'tour',
+        attributes: ['productName', 'departureDate']
+      }]
+    });
+
     if (!tourist) {
       return res.status(404).json({
         success: false,
         error: '无效的上传链接'
       });
     }
-    
+
     res.json({
       success: true,
       data: {
@@ -345,8 +350,8 @@ exports.getUploadStatus = async (req, res) => {
         passportPhoto: tourist.passportPhoto,
         recognizedData: tourist.recognizedData,
         tourInfo: {
-          productName: tourist.tourId.productName,
-          departureDate: tourist.tourId.departureDate
+          productName: tourist.tour.productName,
+          departureDate: tourist.tour.departureDate
         }
       }
     });
