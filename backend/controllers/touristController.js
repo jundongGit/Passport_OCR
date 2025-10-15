@@ -311,58 +311,77 @@ exports.updatePassportPhoto = async (req, res) => {
       });
     }
 
-    console.log('检查图像质量...');
-    const qualityCheck = await imageQuality.checkImageQuality(req.file.path);
+    // 检查是否有用户确认的数据（从销售端新上传流程来的）
+    let passportData;
+    const hasConfirmData = req.body.confirmData;
 
-    if (!qualityCheck.isValid) {
-      await fs.unlink(req.file.path);
-      return res.status(400).json({
-        success: false,
-        error: '图像质量不符合要求',
-        issues: qualityCheck.issues,
-        needsExample: qualityCheck.needsExample
-      });
-    }
-
-    console.log('识别护照信息...');
-    const logContext = {
-      uploadLink: tourist.uploadLink,
-      touristId: tourist.id,
-      operationType: 'update',
-      operatorName: req.salesperson?.name || '管理员',
-      operatorId: req.salesperson?.id || null,
-      imageQuality: qualityCheck,
-      ipAddress: req.ip || req.connection.remoteAddress,
-      userAgent: req.get('User-Agent')
-    };
-    const ocrResult = await passportOCR.recognizePassport(req.file.path, null, logContext);
-    
-    if (!ocrResult.success) {
-      // 即使识别失败，也保存照片并返回部分成功
-      const filename = path.basename(req.file.path);
-      
-      // 删除旧的护照照片文件（如果存在）
-      if (tourist.passportPhoto) {
-        try {
-          const oldFilePath = path.join(__dirname, '..', tourist.passportPhoto);
-          await fs.unlink(oldFilePath);
-        } catch (err) {
-          console.log('旧文件删除失败或不存在');
-        }
+    if (hasConfirmData) {
+      // 使用用户确认的数据，跳过OCR识别
+      console.log('使用用户确认的护照数据');
+      try {
+        passportData = JSON.parse(req.body.confirmData);
+      } catch (parseError) {
+        await fs.unlink(req.file.path);
+        return res.status(400).json({
+          success: false,
+          error: '确认数据格式错误'
+        });
       }
-      
-      tourist.passportPhoto = `/uploads/${filename}`;
-      await tourist.save();
+    } else {
+      // 原有流程：进行质量检查和OCR识别
+      console.log('检查图像质量...');
+      const qualityCheck = await imageQuality.checkImageQuality(req.file.path);
 
-      return res.json({
-        success: true,
-        message: '护照照片已上传，但自动识别失败，请手动填写信息',
-        passportPhoto: tourist.passportPhoto,
-        recognizedData: null
-      });
+      if (!qualityCheck.isValid) {
+        await fs.unlink(req.file.path);
+        return res.status(400).json({
+          success: false,
+          error: '图像质量不符合要求',
+          issues: qualityCheck.issues,
+          needsExample: qualityCheck.needsExample
+        });
+      }
+
+      console.log('识别护照信息...');
+      const logContext = {
+        uploadLink: tourist.uploadLink,
+        touristId: tourist.id,
+        operationType: 'update',
+        operatorName: req.salesperson?.name || '管理员',
+        operatorId: req.salesperson?.id || null,
+        imageQuality: qualityCheck,
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      };
+      const ocrResult = await passportOCR.recognizePassport(req.file.path, null, logContext);
+
+      if (!ocrResult.success) {
+        // 即使识别失败，也保存照片并返回部分成功
+        const filename = path.basename(req.file.path);
+
+        // 删除旧的护照照片文件（如果存在）
+        if (tourist.passportPhoto) {
+          try {
+            const oldFilePath = path.join(__dirname, '..', tourist.passportPhoto);
+            await fs.unlink(oldFilePath);
+          } catch (err) {
+            console.log('旧文件删除失败或不存在');
+          }
+        }
+
+        tourist.passportPhoto = `/uploads/${filename}`;
+        await tourist.save();
+
+        return res.json({
+          success: true,
+          message: '护照照片已上传，但自动识别失败，请手动填写信息',
+          passportPhoto: tourist.passportPhoto,
+          recognizedData: null
+        });
+      }
+
+      passportData = ocrResult.data;
     }
-
-    const passportData = ocrResult.data;
 
     // 如果游客已有护照姓名信息，验证新护照是否为同一人
     if (tourist.passportName && passportData.fullName) {
@@ -422,17 +441,30 @@ exports.updatePassportPhoto = async (req, res) => {
       }
     }
 
+    // 保存护照照片
     tourist.passportPhoto = `/uploads/${filename}`;
+
+    // 保存护照信息到对应字段
+    tourist.passportName = passportData.fullName ? passportData.fullName.replace(/-/g, ' ') : null;
+    tourist.passportNumber = passportData.passportNumber;
+    tourist.gender = passportData.gender;
+    tourist.nationality = passportData.nationality;
+    tourist.passportBirthDate = parseDDMMYYYY(passportData.birthDate);
+    tourist.passportIssueDate = parseDDMMYYYY(passportData.issueDate);
+    tourist.passportExpiryDate = parseDDMMYYYY(passportData.expiryDate);
+    tourist.uploadStatus = 'verified';
+
+    // 也保存完整的识别数据到JSON字段
     tourist.recognizedData = {
       name: passportData.fullName ? passportData.fullName.replace(/-/g, ' ') : null,
       fullName: passportData.fullName ? passportData.fullName.replace(/-/g, ' ') : null,
       passportNumber: passportData.passportNumber,
       gender: passportData.gender,
       nationality: passportData.nationality,
-      birthDate: parseDDMMYYYY(passportData.birthDate),
+      birthDate: passportData.birthDate,
       birthPlace: passportData.birthPlace ? passportData.birthPlace.toUpperCase() : null,
-      issueDate: parseDDMMYYYY(passportData.issueDate),
-      expiryDate: parseDDMMYYYY(passportData.expiryDate)
+      issueDate: passportData.issueDate,
+      expiryDate: passportData.expiryDate
     };
 
     await tourist.save();
